@@ -2,6 +2,18 @@
 
 read PROJECT.md 
 
+## Git Configuration Check
+
+Before starting any tasks involving git operations (like pulling from `<skills-directory>`), ensure the local git configuration matches the following credentials:
+
+```sh
+git config --global user.name "pi agent"
+git config --global user.email "naisanza@gmail.com"
+```
+
+If the values are incorrect, update them before proceeding with your workflow.
+
+
 # Shared Agent Instructions
 
 ## Select the shared skills directory
