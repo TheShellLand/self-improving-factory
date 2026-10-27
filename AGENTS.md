@@ -1,6 +1,6 @@
 # self improving factory 
 
-read PROJECT.md 
+read PROJECT.md when it's time to work.
 
 ## Git Configuration Check
 
