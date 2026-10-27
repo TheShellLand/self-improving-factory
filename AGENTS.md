@@ -56,3 +56,12 @@ a requirement could not be completed.
 ## Script Adherence Rule
 
 When a project or shared directory provides specialized helper scripts (e.g., in /scripts/), prioritize executing these tools exactly as documented. Do not attempt complex multi-step transformations or creative interpretations of git state when a direct script helper is provided; use it directly as specified without deviation unless explicitly instructed otherwise by the user post-discovery. Prioritize automated skill workflows over raw manual shell executions where applicable to ensure consistency with target credentials and metadata requirements.
+
+
+## Runtime Execution & Documentation [Link]
+Agents tasked with analyzing, verifying, or launching system components must refer to `/root/brain/docs/runtime_guide.md`. This file contains mandatory setup logic including: 
+
+1) **Docker Lifecycle**: Proper build and run procedures for core sandboxed subagents using `build.sh`, `run.sh`, and `test.sh` (located in project root).  
+2) **Environment Context**: Mandatory `$PYTHONPATH=.` settings and dependency installation steps via `./requirements_txt`.  
+3) **Signal Integrity**: Contractual details on RPC mode signals (`--mode rpc`) used by both the Host Orchestrator and Subagent Runners to ensure zero-terminal feedback cycles satisfy SASIAS goals. 
+Reference this guide before spawning child containers or performing deep audits of internal code paths.
