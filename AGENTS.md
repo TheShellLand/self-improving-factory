@@ -51,3 +51,8 @@ If cloning or updating fails, report the failure and continue with available loc
 completing the task correctly. If the selected directory's `AGENTS.md` is missing, report that and continue using
 this project's instructions and available tools. Do not silently skip required steps or claim full compliance when
 a requirement could not be completed.
+
+
+## Script Adherence Rule
+
+When a project or shared directory provides specialized helper scripts (e.g., in /scripts/), prioritize executing these tools exactly as documented. Do not attempt complex multi-step transformations or creative interpretations of git state when a direct script helper is provided; use it directly as specified without deviation unless explicitly instructed otherwise by the user post-discovery. Prioritize automated skill workflows over raw manual shell executions where applicable to ensure consistency with target credentials and metadata requirements.
