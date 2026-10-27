@@ -14,44 +14,46 @@ To avoid nested containers while maintaining strict isolation, SASIAS uses **Dis
 
 ## Perspective & Visual Observation Layer 
 To enable "self-improving" reflection through observation rather than just log parsing, SASIAS captures visual context:
-1. **User Context Injection**: Client browser viewport dimensions are captured at every user interaction and injected into signal logs within `history_vault.db`.
-2. **Standardized Subagent Viewports**: The Orchestrator enforces standardized screen resolutions (e.g., $w \times h$) on subagents to ensure consistent image analysis results across different tasks during vision processing.
+1. **User Context Injection**: Client browser viewport dimensions are captured at every user interaction and injected into signal logs within `history_vault.db`. These ensure bug reports match human perspective exactly.
+2. **Standardized Subagent Viewports**: The Orchestrator enforces standardized screen resolutions (e.g., $1920 \times 1080$ default) on subagents to ensure consistent image analysis results across different tasks during vision processing.
 3. **Signal Schema**: Every RPC pulse includes a mandatory optional `visual_state` field containing the base64 representation of the current UI view for auditing by both humans and agents.
 
 ## Task Governance & Resource Management
 To respect hardware constraints ("One LLM resource" model), SASIAS implements an Issue Lifecycle:
--   **Bug Reporting System**: A permanent "Report Bug" button captures user state, viewport metadata, and navigation status into an internal issue queue. 
--   **Priority Queue (Voting)**: Issues are stored in a dedicated table where users can vote on priority ($+$ / $-$). This provides human oversight over what tasks enter the autonomous loop first to avoid overloading system resources.
--   **Human-in-the-loop Selection**: The orchestrator pulls high-priority issues from this board one at a time for deep analysis by the single available agent process.
+-   **Bug Reporting System**: A permanent "Report Bug" button captures user state, viewport metadata, and navigation status into an internal issue queue stored in `history_vault.db`. 
+-   **Priority Queue (Voting)**: Issues are stored in a dedicated table where users can vote on priority ($+$ / $-$). This provides human oversight over what tasks enter the autonomous loop first to avoid overloading system resources or causing unintended iterations.
+-   **Human-in-the-loop Selection**: The orchestrator pulls high-priority issues from this board one at a time for deep analysis by the single available agent process when capacity allows.
 
 ## Secure Software Development Architecture
 To prevent unsafe shell access while maintaining autonomy over code growth, we use a **Commit Gateway Pattern**.
-1. **LLM Role (Content Decision)**: LLMs analyze results and generate proposed diffs and descriptive commit messages only as data objects (*not* command strings).
+1. **LLM Role (Content Decision)**: LLMs analyze results and generate proposed diffs and descriptive commit messages only as data objects (*not* command strings) passed through an RPC channel.
 2. **Python Core Gatekeeper (Execution authority)**: A dedicated project library handles all Git operations via `GitPython`. This ensures that state transitions in version control are atomic, audited into standard logs, and protected against raw tool injection or unauthorized history manipulation from subagents.
 
 **Tech Stack:** 
 - Primary Language: Python
 - Core Library: `pi-coding-agent-python-sdk`
-- Web Framework: FastAPI / Flask + React for dashboard & bug reporting UI.
-- Version Control Logic: `gitpython`, managed internally by the Orchestrator logic blocks.
-- Communication Protocol: Host Docker Socket access with Subprocess/RPC communication core.
+- Web Framework: FastAPI / Flask + React for dashboard & bug reporting UI integration.
+- Version Control Logic: `gitpython`, managed internally by ORCHESTRATOR logic blocks to ensure safety compliance.
+- Communication Protocol: Host Docker Socket access with Subprocess/RPC communication core (`pi --mode rpc`).
 
-## Planned Tasks
-- [x] Phase 0: Project Initialization & Specification definition (Updated).
-- [ ] Phase 1: Architecture Design - Finalize detailed components for Reflection Loop, Persistence Layer (SQL), Chat Bridge including Gateway and RPC signal schemas.
-- [ ] Phase 2: Database Migration/Setup - Implement SQLite boilerplate (`history_vault.db`) and issue queue tables.
-- [ ] Phase 3: Infrastructure Setup - Creating the `Dockerfile` + host socket bridges!
-- [ ] Phase 4: Simple Web UI Prototype - Comprehensive dashboard featuring bug reporting button OR voting board view.
-- [ ] Phase 5: Strategy Optimizer / Hot Loader Prototype - Dynamic updating of agent rules via live injection within sandboxes.
+## Planned Tasks (Roadmap)
+*   **[x] Phase 0**: Project Initialization & Specification definition complete. Validated project structure and documentation requirements.
+*   **Phase 1: Distributed System Architecture** - Finalize signaling schemas for RPC communication and define Gatekeeper, Observer, and Executor class structures. Map signal propagation from Chat Bridge $\rightarrow$ Signal Log $\rightarrow$ Child Sandbox execution results.
+*   **Phase 2: Core Vault Foundation** - Initializing `history_vault.db`. Create migration scripts for the 'Signal Feed' ($w \times h$, base64 frames), Issues Queue (+voting logic), and Experience Memory blocks (critic values).
+*   **Phase 3: Docker Orchestration Framework** - Build parent container setup with host socket mapping using Python-based lifecycle managers. Construct child sandbox templates/configs to enforce $1920 \times 1080$ viewport standardization at launch.
+*   **Phase 4: Gatekeeper Commit Logic & Versioning System** - Fully integrate `GitPython` into core modules as a primary gateway. Implement commit message generation prompts that prevent raw shell injection while allowing complex diff application.
+*   **Phase 5: UX Interface Layer (Chat Bridge)** - Develop FastAPI and React frontend featuring the state-aware "Report Bug" snapshot button, real-time Signal Audit logs, and priority voting dashboard for humans.
+*   **Phase 6: Reflection Engine Development** - Build Critic module logic to interpret vault experience records. Finalize Hot Loading blocks for rules/weights injection without restart or re-builds of active containers.
+*   **Phase 7: Full Autonomy Convergence** - Integrate full loop where prioritized issues from human queue trigger automatic sandbox execution $\rightarrow$ observation logging $\rightarrow$ critic reflection $\rightarrow$ model weight updates in dynamic cycle with zero manual terminal intervention.
 
 ## Implementation Details
-### Core Components (Proposed)
-*   **Executor**: Orchestrates subprocess spawning, viewport standardization, and Gatekeeper logic for commit actions across distributed tasks using RPC communication protocols.
-*   **Observer**: Monitors results, checking logs/success metrics automatically from child processes; ingest visual state observations into history vault.
-*   **Critic / Reflector**: Real-time audit feedback loop—translates remote execution outcomes and human perspective signals into persistent memory updates in `history_vault.db`.
-*   **Evolution Engine & Hot Loader**: Updates prompt weights/logic based on Critic findings; allows for **hot loading** of code changes during active runtime sessions without requiring container restarts or re-builds.
-*   **Chat Bridge & Audit UI**: Unified interface where users feed objectives AND view a transparent dashboard containing the bug report queue (with voting) and real-time signal audits.
+### Core Components (Specifications)
+*   **Executor**: Orchestrates subprocess spawning via Docker sockets; enforces $1920 \times 1080$ viewport rendering on subagents by default ($w,h$) and maintains an RPC connection pool to manage multiple distributed tasks concurrently while maintaining strict isolation.
+*   **Observer**: Automatically parses child process logs/output streams using standard deviation logic; captures visual `base64` signals as they occur during task steps for ingestion into the experience memory layer.
+*   **Critic / Reflector**: Analyzes specific execution telemetry against user-provided bug reports from `history_vault.db`; translates identified friction points into persistent vectorizable update rules or new behavior weights.
+*   **Evolution Engine & Hot Loader**: Consumes critic updates to calculate prompt weightings OR operational strategy changes; uses hot loading blocks (runtime reload) of internal configuration modules without requiring container reboots or rebuilds.
+*   **Chat Bridge & Audit UI**: Captures raw human input + browser context (viewport, path depth); populates common Signal\_log entries as first-order data objects; provides a voting dashboard for humans and an audit trail for every subagent signal fired across the distributed system.
 
 ## History / Logs
 ### Finalized Architecture Decision Log:
-Standardized Distributed Sandboxing vs Nested Containers -> Subagents spawned via Docker Socket as RPC processes. 1080p standardization + Client Viewport captures added to Signal schema. Issue Queue with Voting implemented to manage limited LLM hardware resources. Git management handled by Python Gatekeeper pattern using `gitpython` instead of raw agent shell tool calls for security and auditability!
+Distributed Orchestration model adopted to solve nested containers via Host Socket access (`/var/run/docker.sock`) combined with RPC Mode Subagents (`--mode rpc`). High-resolution viewport standardization ($1920 \times 1080$) locked in both frontend capture logic and backend sandbox generation logs. Issue management implemented through prioritized SQL queue (+voting) at host level, allowing human prior prioritization of LLM tasks on single machines. Version control strictly gated by Python's `GitPython` gateway pattern (No shell commits from agents). Project established as a "Zero Terminal" system for production operation!
