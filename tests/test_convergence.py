@@ -1,46 +1,52 @@
-import asyncio
-from core.executor import ExecutorCore
-from core.critic import CriticModule
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
+from core.database import connect, initialize_database
 from core.evolution import EvolutionEngine
 from core.hotloader import HotLoaderModule
-import sqlite3
-import logging
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("ConvergenceLoop")
 
-async def phase_7_convergence_cycle():
-    """Simulates the complete closure of Phase 7 loop."""
-    db_path = "/root/brain/history_vault.db"
-    # Initialization (In reality these would be singleton-like or managed by a lifecycle context)
-    engine = EvolutionEngine(db_path)
-    critic = CriticModule(db_path) # Assume this has its own connection logic internally per previous implementation
-    hotloader = HotLoaderModule()
-    executor = ExecutorCore(...) # Would need correct initialization but let's check flow first
+class TestReflection(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.temp = TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.db = Path(self.temp.name) / "vault.db"
+        initialize_database(self.db)
 
-    logger.info("Starting Convergence Loop Simulation...")
-    
-    # Step A: Monitor for Issues
-    issues = await critic.fetch_high_priority_issues()
-    if not issues:
-        logger.warning("No high priority issues found in vault.")
-        return
+    async def test_reflection_persists_and_loads_provider_output(self):
+        with connect(self.db) as connection:
+            connection.execute("INSERT INTO issues (issue_id, title, content, status) VALUES (?, ?, ?, ?)",
+                               ("i1", "Failed", json.dumps({"context_blob": {"session_id": "s1"}}), "OPEN"))
+            for session in ["s1", "s10"]:
+                connection.execute(
+                    "INSERT INTO trace_signals (signal_id, timestamp, source_agent, action_type, payload) "
+                    "VALUES (?, 1, 'test', 'RESULT', ?)", (session, json.dumps({"session_id": session})))
 
-    for issue in issues:
-        logger.info(f"Processing Issue ID: {issue['id']} - '{issue['title']}'")
-        context = json.loads(issue['context_blob'])
-        session_id = context.get('session_id', 'test-conv')
+        def provider(issue, traces):
+            self.assertEqual(issue["issue_id"], "i1")
+            self.assertEqual([row["signal_id"] for row in traces], ["s1"])
+            return {"logic_description": "Retry more", "prompt_weights": {"retry": 2}}
 
-        # Step B: Trigger Execution (Orchestration) via Executor 
-        # In our logic, this triggers a Docker spawn simulation or actual one if available
-        # For Phase 7 convergence test we ensure it records signals into database correctly first.
-        logger.info("Triggering sandbox execution pulse...")
-        
-        # Mocked/Simulated result signal update for the purpose of testing flow integrity in loop phase
-        # ensuring that an observation is recorded and then critiqued by Critic module
-        engine._commit_knowledge_update(desc="Mock updated weight", weights='{"weight":10}')
+        self.assertEqual(await EvolutionEngine(self.db, provider).run_reflection_cycle(), [1])
+        loader = HotLoaderModule(self.db)
+        self.assertEqual(loader.sync_once(), 1)
+        self.assertEqual(loader.get_active_config(), {"retry": 2})
+        self.assertEqual(loader.sync_once(), 0)
 
-    logger.info("Convergence cycle iteration complete.")
+    async def test_provider_is_required(self):
+        with self.assertRaisesRegex(RuntimeError, "reflection provider"):
+            await EvolutionEngine(self.db).run_reflection_cycle()
 
-if __name__ == "__main__":
-    asyncio.run(phase_7_convergence_cycle())
+    def test_same_timestamp_does_not_skip_later_updates(self):
+        engine = EvolutionEngine(self.db)
+        engine._commit_knowledge_update("First", {"a": 1})
+        with connect(self.db) as connection:
+            connection.execute("UPDATE knowledge_updates SET applied_at = 1")
+        loader = HotLoaderModule(self.db)
+        loader.sync_once()
+        engine._commit_knowledge_update("Second", {"b": 2})
+        with connect(self.db) as connection:
+            connection.execute("UPDATE knowledge_updates SET applied_at = 1")
+        self.assertEqual(loader.sync_once(), 1)
+        self.assertEqual(loader.get_active_config(), {"a": 1, "b": 2})

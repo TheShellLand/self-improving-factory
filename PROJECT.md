@@ -1,5 +1,12 @@
 # Project Specification & Progress Log
 
+> Implementation status: this document includes historical completion claims.
+> The current verified foundation covers the issue/audit API, nondestructive
+> schema initialization, validated Git proposals, Docker command handling, and
+> reflection persistence with an injected provider. The autonomous scheduler,
+> agent RPC execution, drift analysis, and frontend remain unfinished. See
+> README.md for runnable setup and current limitations.
+
 ## Overview
 ### Objective: Autonomous Self-Improving Agent System (ASIAS)
 The primary goal of this project is to move beyond "looping" manual agent interactions in a terminal by creating an autonomous framework that improves itself as it operates live. The system must be able to reflect on its successes and failures, update internal knowledge bases about the environment/tools, and refine its own planning logic dynamically without human prompting between steps.

@@ -1,0 +1,8 @@
+.git
+.idea
+.env
+.venv
+__pycache__
+*.db
+root
+test_git_vault

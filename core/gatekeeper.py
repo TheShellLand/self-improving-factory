@@ -1,66 +1,97 @@
-import sys
-import os
-from typing import Dict, List
+"""Apply file proposals to an explicitly selected Git repository."""
+import logging
+from pathlib import Path
 import git
 
+logger = logging.getLogger(__name__)
+
+
 class GatekeeperVault:
-    """The safe-zone interface for all version control operations."""
-    def __init__(self, repo_path: str):
-        if not os.path.exists(repo_path) or (os.path.isdir(repo_path) and not os.path.exists(os.path.join(repo_path, ".git"))):
-            # We ignore errors because if it's a legitimate but non-standard dir we might want to init 
-            try:
-                os.makedirs(repo_path, exist_ok=True)
-            except FileExistsError:
-                pass
+    """Commit validated file replacements in a clean, exclusively owned checkout.
 
+    This is not a sandbox for executing untrusted code. Callers must serialize
+    access to the repository while a proposal is being applied.
+    """
+
+    def __init__(self, repo_path: str, *, create: bool = False):
+        self.root = Path(repo_path).resolve()
+        self.repo = (git.Repo.init(self.root, initial_branch="main") if create
+                     else git.Repo(self.root, search_parent_directories=False))
+        if self.repo.bare:
+            raise ValueError("A working tree is required")
+
+    def _validate(self, message, file_changes):
+        if not isinstance(message, str) or not message.strip():
+            raise ValueError("A nonempty commit message is required")
+        if self.repo.is_dirty(untracked_files=True):
+            raise ValueError("The repository must be clean before applying a proposal")
+        changes = {}
+        for change in file_changes:
+            name, content = change["filename"], change["content"]
+            if not isinstance(name, str) or not isinstance(content, str):
+                raise ValueError("Filenames and contents must be strings")
+            relative = Path(name)
+            if (not name or relative.is_absolute() or ".." in relative.parts
+                    or any(part.lower() == ".git" for part in relative.parts)):
+                raise ValueError(f"Invalid repository path: {name}")
+            target = self.root / relative
+            if target == self.root or not target.resolve().is_relative_to(self.root):
+                raise ValueError(f"Path escapes the repository: {name}")
+            for path in (target, *target.parents):
+                if path == self.root:
+                    break
+                if path.is_symlink():
+                    raise ValueError(f"Symlink paths are not supported: {name}")
+                if path.is_dir() and (path / ".git").exists():
+                    raise ValueError(f"Nested repositories are not supported: {name}")
+            if target.exists() and not target.is_file():
+                raise ValueError(f"Target is not a file: {name}")
+            if target in changes:
+                raise ValueError(f"Duplicate target: {name}")
+            changes[target] = content
+        if any(parent in changes for path in changes for parent in path.parents):
+            raise ValueError("A file cannot also be a parent directory")
+        return changes
+
+    def execute_proposed_commit(self, message: str, file_changes: list[dict]) -> bool:
+        """Apply a batch, restoring files and index if writing or committing fails."""
+        originals = {}
+        created_dirs = set()
+        index_path = Path(self.repo.index.path)
+        index_bytes = None
+        started = False
         try:
-            self.repo = git.Repo.init(repo_path)
-        except Exception as e:
-             # If already initialized as a repo OR other reason why .init failed (e.g., path exists), try open it
-             print(f"Initializing/Opening Repo at {repo_path}... ({str(e)})")
-             self.repo = git.Repo(repo_path)
-
-    def execute_proposed_commit(self, message: str, file_changes: List[Dict]) -> bool:
-        """Verifies and applies agent commits via gitpython library abstraction layer."""
-        print(f"[Gatekeeper] Applying batch of {len(file_changes)} changes.")
-        try:
-            for change in file_changes:
-                filename = change['filename']
-                content = change['content']
-                full_path = os.path.join(self.repo.working_tree_dir, filename)
-                # Ensure subdirectory structure exists
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, 'w') as f:
-                    f.write(content)
-
-            for change in file_changes:
-                 self.repo.index.add(change['filename'])
-
-            if not self.repo.is_dirty(): 
-                print("[Gatekeeper] No changes detected (possibly same content).")
-            else:
-                 self.repo.index.commit(message)
-            
-            print(f"[Gatekeeper] Commit successful or no-op needed.")
+            changes = self._validate(message, file_changes)
+            originals = {path: path.read_bytes() if path.exists() else None for path in changes}
+            index_bytes = index_path.read_bytes() if index_path.exists() else None
+            started = True
+            for path, content in changes.items():
+                parent = path.parent
+                while not parent.exists():
+                    created_dirs.add(parent)
+                    parent = parent.parent
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+            if changes:
+                self.repo.index.add([str(path.relative_to(self.root)) for path in changes])
+                if self.repo.is_dirty():
+                    self.repo.index.commit(message)
             return True
-        except Exception as e:
-            print(f"!!! [Gatekeeper Error]: {e}", file=sys.stderr)
+        except Exception:
+            logger.exception("Proposal failed")
+            if started:
+                for path, original in originals.items():
+                    if original is None:
+                        path.unlink(missing_ok=True)
+                    else:
+                        path.write_bytes(original)
+                for directory in sorted(created_dirs, key=lambda path: len(path.parts), reverse=True):
+                    directory.rmdir()
+                if index_bytes is None:
+                    index_path.unlink(missing_ok=True)
+                else:
+                    index_path.write_bytes(index_bytes)
             return False
 
     def get_last_commit(self):
-        try:
-             h = self.repo.head.commit.hexsha
-             return h
-        except Exception:
-             return None
-
-if __name__ == "__main__":
-	# Use a local testing directory for the script execution to not interfere with actual source dirs if they are git repos
-	gatekeeper = GatekeeperVault("./test_git_vault")
-	status = gatekeeper.execute_proposed_commit("Initial Test", [
-		{"filename": "dir1/file1.txt", "content": "Content 1"},
-		{"filename": "root_level_new.md", "content": "# Root Level New"}
-	])
-	assert status is True
-	print(f"Final Repo State SHA: {gatekeeper.get_last_commit()}")
-	print("Gatekeeper Logic Verified.")
+        return self.repo.head.commit.hexsha if self.repo.head.is_valid() else None

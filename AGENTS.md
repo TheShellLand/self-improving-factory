@@ -59,7 +59,7 @@ When a project or shared directory provides specialized helper scripts (e.g., in
 
 
 ## Runtime Execution & Documentation [Link]
-Agents tasked with analyzing, verifying, or launching system components must refer to `/root/brain/docs/runtime_guide.md`. This file contains mandatory setup logic including: 
+Agents tasked with analyzing, verifying, or launching system components must refer to `docs/runtime_guide.md` relative to this repository. `/root/brain` is a historical container location, not a required host path. This file contains setup logic including:
 
 1) **Docker Lifecycle**: Proper build and run procedures for core sandboxed subagents using `build.sh`, `run.sh`, and `test.sh` (located in project root).  
 2) **Environment Context**: Mandatory `$PYTHONPATH=.` settings and dependency installation steps via `./requirements_txt`.  

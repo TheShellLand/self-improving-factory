@@ -4,6 +4,7 @@ import time
 import subprocess
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
+from core.orch_config import SandboxConfig
 
 @dataclass
 class ChildTaskStatus:
@@ -40,14 +41,7 @@ class DockerOrchestrationEngine:
         self._active_containers[container_id] = status
 
         # Strategy: Use docker run directly to ensure reliability with socket mounting correctly mapped.
-        docker_cmd = [
-            "docker", "run", "--rm",
-            "--name", container_id,
-            "-e", f"SASIAS_VIEWPORT={self.DEFAULT_VIEWPORT}", 
-            "-v", "/var/run/docker.sock:/var/run/docker.sock",
-            "--network", "host",  # host network for IPC if needed or private net provided by orch (not specified yet)
-            image
-        ] + command
+        docker_cmd = SandboxConfig(container_id, image).docker_args() + command
 
         print(f"[ORCHESTRATOR] Spawning Subagent {container_id} | Image: {image}")
         
@@ -63,6 +57,7 @@ class DockerOrchestrationEngine:
             self._active_containers[container_id].output = [] # placeholder for capture logic if expanded later
 
             out, err = process.communicate()
+            status.output = out.splitlines()
             
             if process.returncode == 0:
                 status.status = "COMPLETED"
@@ -79,9 +74,12 @@ class DockerOrchestrationEngine:
         
         return container_id
 
-    def get_status(self, container_id: str) -> ChildTaskStatus:
+    def get_status(self, container_id: str) -> Optional[ChildTaskStatus]:
          return self._active_containers.get(container_id)
 
     def cleanup_all(self):
-        """Safe teardown for any remaining registrations."""
-        pass
+        """Forget finished registrations; spawn_child waits for --rm containers."""
+        self._active_containers = {
+            key: value for key, value in self._active_containers.items()
+            if value.status == "RUNNING"
+        }

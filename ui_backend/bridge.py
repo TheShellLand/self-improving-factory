@@ -1,75 +1,56 @@
-import sqlite3
-from typing import List, Dict, Any
+"""HTTP access to the audit trail and issue queue."""
+from contextlib import asynccontextmanager
 import json
-import logging
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+import uuid
+from fastapi import FastAPI
+from pydantic import BaseModel, Field
+from core.config import DATABASE_PATH
+from core.database import connect, initialize_database
 
-app = FastAPI()
-
-logger = logging.getLogger("BridgeAPI")
-logging.basicConfig(level=logging.INFO)
-
-# This represents the path to our local audit trail database
-DB_PATH = "/root/brain/history_vault.db"
-
-from pydantic import BaseModel
 
 class BugReport(BaseModel):
-    title: str
+    title: str = Field(min_length=1)
     description: str
-    path_depth: int
-    client_viewport: Dict[str, int]
-    context_blob: Dict[str, Any]
+    path_depth: int = Field(default=0, ge=0)
+    client_viewport: dict[str, int] = Field(default_factory=dict)
+    context_blob: dict = Field(default_factory=dict)
+    priority: float = Field(default=10.0, allow_inf_nan=False)
 
-@app.get("/api/audit-trail")
-async def get_audit_trail():
-    """Retrieves raw firehose of signals from trace_signals table."""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        # Fetching latest 100 for UI display performance
-        cur.execute("SELECT * FROM trace_signals ORDER BY timestamp DESC LIMIT 100")
-        rows = cur.fetchall()
-        return [dict(r) for r in rows]
-    except Exception as e:
-        logger.error(f"Error fetching audit trail: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@app.post("/api/report-bug")
-async def report_bug(data: dict):
-    """Captures user reports and inserts them into the IMS issue queue."""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        # Standardizing inputs based on Phase 2 & Project Specs requirements (w*h included)
-        query = """INSERT INTO issues (title, description, context_blob, status, priority_score)
-                    VALUES (?, ?, ?, 'OPEN', ?)"""
-        
-        priority = data.get('priority', 10.0) # Default to high for immediate attention
-        cur.execute(query, (data['title'], data['description'], json.dumps(data), priority))
-        conn.commit()
-        return {"status": "recorded", "issue_id": cur.lastrowid}
-    except Exception as e:
-        logger.error(f"Error reporting bug via Bridge UI: {e}")
-        raise HTTPException(status_code=500, detail="Persistence failed")
+def create_app(database_path=DATABASE_PATH):
+    @asynccontextmanager
+    async def lifespan(app):
+        initialize_database(database_path)
+        yield
 
-@app.get("/api/issues")
-async def list_priority_issues():
-    """Retrieves and sorts issues by status in the voting lifecycle."""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        # Fetching OPEN or WAITING to showcase priority sorting for human triage loop
-        cur.execute("SELECT * FROM issues WHERE status IN ('OPEN', 'WAITING') ORDER BY priority_score DESC LIMIT 20")
-        rows = cur.fetchall()
-        return [dict(r) for r in rows]
-    except Exception as e:
-        logger.error(f"Error listing issues: {e}")
-        raise HTTPException(status_code=500, detail="Persistence failed")
+    application = FastAPI(lifespan=lifespan)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    @application.get("/api/audit-trail")
+    def get_audit_trail():
+        with connect(database_path) as connection:
+            return [dict(row) for row in connection.execute(
+                "SELECT * FROM trace_signals ORDER BY timestamp DESC LIMIT 100")]
+
+    @application.post("/api/report-bug")
+    def report_bug(data: BugReport):
+        issue_id = str(uuid.uuid4())
+        with connect(database_path) as connection:
+            connection.execute(
+                "INSERT INTO issues (issue_id, title, content, status, priority_score, "
+                "viewport_snapshot) VALUES (?, ?, ?, 'OPEN', ?, ?)",
+                (issue_id, data.title, data.model_dump_json(), data.priority,
+                 json.dumps(data.client_viewport)),
+            )
+        return {"status": "recorded", "issue_id": issue_id}
+
+    @application.get("/api/issues")
+    def list_priority_issues():
+        with connect(database_path) as connection:
+            return [dict(row) for row in connection.execute(
+                "SELECT * FROM issues WHERE status IN ('OPEN', 'WAITING') "
+                "ORDER BY priority_score DESC LIMIT 20")]
+
+    return application
+
+
+app = create_app()

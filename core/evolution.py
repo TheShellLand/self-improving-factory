@@ -1,62 +1,52 @@
-import sqlite3
-from typing import List, Dict, Any
+"""Persist reflection proposals supplied by an explicit analysis provider."""
 import json
-import logging
 import time
+from core.critic import CriticModule
+from core.database import connect
 
-# Setup basic logger for integration loops
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("EvolutionEngine")
 
 class EvolutionEngine:
-    """Core engine that orchestrates the reflection loop and applies knowledge updates."""
-    def __init__(self, database_path: str):
+    def __init__(self, database_path, reflection_provider=None):
         self.db_path = database_path
-        logger.info("Evolution Engine Initialized.")
-
-    def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
+        self.reflection_provider = reflection_provider
 
     async def run_reflection_cycle(self):
-        """Executes a full cycle of observation $\rightarrow$ criticism $\rightarrow$ evolution synthesis."""
-        # 1. Fetch high priority issues to address first
-        critic = CriticModule(self.db_path) # In practice, this would be injected or shared instance
-        issues = await critic.fetch_high_priority_issues()
-        logger.info(f"Reflection Cycle started. {len(issues)} prioritized issues found.")
+        """Pass each prioritized issue and its evidence to the provider.
 
-        for issue in issues:
-            if issue['status'] == 'CLOSED':
-                continue
-            
-            # 2. Analyze context for the specific issue (mock logic for brevity here)
-            session_id = issue.get('context_blob', {}).get('session_id', 'unknown')
-            traces = critic.correlate_failures_to_signals(session_id)
-            
-            # 3. Synthesize an update (Simulated LLM step)
-            update = critic.generate_reflection_update(session_id, "logic_drift")
-            logger.info(f"Synthesized evolution strategy: {update['logic_description']}")
+        The caller owns issue scheduling and deduplication across cycles.
+        A provider accepts (issue, traces) and returns logic_description and
+        prompt_weights, or None when no update is appropriate.
+        """
+        if self.reflection_provider is None:
+            raise RuntimeError("Configure a reflection provider before running a cycle")
+        critic = CriticModule(self.db_path)
+        versions = []
+        for issue in await critic.fetch_high_priority_issues():
+            try:
+                content = json.loads(issue["content"] or "{}")
+            except (TypeError, ValueError):
+                content = {}
+            context = content.get("context_blob", {}) if isinstance(content, dict) else {}
+            session_id = context.get("session_id") if isinstance(context, dict) else None
+            traces = critic.correlate_failures_to_signals(session_id) if session_id else []
+            update = self.reflection_provider(issue, traces)
+            if update is not None:
+                versions.append(self._commit_knowledge_update(
+                    update["logic_description"], update["prompt_weights"]))
+        return versions
 
-            # 4. Commit to Knowledge Vault and schedule for HotLoader injection
-            self._commit_knowledge_update(
-                desc=update['logic_description'],
-                weights=update['prompt_weights']
-            )
-
-    def _commit_knowledge_update(self, desc: str, weights: str):
-        """Persists a new knowledge record into the database."""
-        with self._get_connection() as conn:
-            cur = conn.cursor()
-            query = """INSERT INTO knowledge_updates (logic_description, prompt_weights, version_number) 
-                       VALUES (?, ?, ?)"""
-            # Simple versioning based on count + 1 for this demo logic
-            cur.execute("SELECT COUNT(*) FROM knowledge_updates")
-            version = cur.fetchone()[0] + 1
-            cur.execute(query, (desc, weights, version))
-            conn.commit()
-            logger.info(f"Committed Version {version} to Knowledge Vault.")
-
-if __name__ == "__main__":
-    engine = EvolutionEngine("/root/brain/history_vault.db")
-    print("Evolution Engine Ready.")
+    def _commit_knowledge_update(self, desc, weights):
+        weights = json.loads(weights) if isinstance(weights, str) else weights
+        if not isinstance(weights, dict):
+            raise ValueError("Prompt weights must be a JSON object")
+        encoded = json.dumps(weights, allow_nan=False)
+        with connect(self.db_path) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            version = connection.execute(
+                "SELECT COALESCE(MAX(version_number), 0) + 1 FROM knowledge_updates"
+            ).fetchone()[0]
+            connection.execute(
+                "INSERT INTO knowledge_updates "
+                "(applied_at, version_number, logic_description, prompt_weights) VALUES (?, ?, ?, ?)",
+                (time.time(), version, desc, encoded))
+        return version

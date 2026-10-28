@@ -1,15 +1,38 @@
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import MagicMock, patch
-from ui_backend.bridge import app # Assuming I need a way to access 'app' from here without running server
+from fastapi.testclient import TestClient
+from core.database import initialize_database
+from ui_backend.bridge import create_app
+
 
 class TestUIBridge(unittest.TestCase):
-    """Verifies FastAPI routing and payloads for the UI Bridge Backend."""
-    def test_report_bug_payload(self):
-        """Verify that we can parse the bug report payload correctly in our logic layer."""
-        # Instead of hitting an actual network port 8000 which might be blocked or busy,
-        # We verify the underlying handler functions if they were exported. 
-        # Given current structure (ui_backend/bridge.py), let us check requirements: title, desc, w*h etc are captured.
-        pass # Placeholder as bridge handles this via router types
+    def setUp(self):
+        self.temp = TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.db = Path(self.temp.name) / "vault.db"
+        self.client = self.enterContext(TestClient(create_app(self.db)))
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_report_persists_and_initialization_preserves_data(self):
+        response = self.client.post("/api/report-bug", json={
+            "title": "Broken task", "description": "Details",
+            "client_viewport": {"width": 1920, "height": 1080},
+            "context_blob": {"session_id": "session-1"},
+        })
+        self.assertEqual(response.status_code, 200)
+        initialize_database(self.db)
+        issues = self.client.get("/api/issues").json()
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0]["issue_id"], response.json()["issue_id"])
+        self.assertEqual(json.loads(issues[0]["content"])["description"], "Details")
+        self.assertEqual(len(self.client.get("/api/audit-trail").json()), 1)
+
+    def test_invalid_report_is_rejected(self):
+        self.assertEqual(self.client.post("/api/report-bug", json={"title": ""}).status_code, 422)
+
+    def test_priority_order(self):
+        for priority in [2, 10]:
+            self.client.post("/api/report-bug", json={
+                "title": str(priority), "description": "", "priority": priority})
+        self.assertEqual([row["priority_score"] for row in self.client.get("/api/issues").json()], [10, 2])
