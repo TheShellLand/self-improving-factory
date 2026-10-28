@@ -4,7 +4,7 @@
 
 Use the project root as the working directory and `PYTHONPATH=.` for local module
 execution. Python 3.12+ and Git are required. Install runtime dependencies with
-your configured interpreter's `-m pip install -r requirements_txt`; use
+your configured interpreter's `-m pip install -r requirements.txt`; use
 `requirements-dev.txt` for tests. Activate a virtual environment first. Agents
 using PyCharm must follow the python-tools skill to select its configured SDK.
 
@@ -69,5 +69,8 @@ process termination, or filesystem failure during recovery.
 CommitService records PREPARED before applying a proposal and APPLIED/FAILED
 afterward. A remaining PREPARED record must be reconciled against Git; do not
 retry it blindly. Cancellation leaves a RUNNING session to prevent overlapping
-work. Verify the child has stopped before resolving that session. No automatic
-recovery daemon or recovery UI is implemented yet.
+work. The recovery service requires a host verifier that confirms both the parent
+task and child execution have stopped. Mutating recovery routes additionally
+require a host operator authorization callback; they are disabled in the default
+API. No automatic recovery daemon or recovery UI is implemented yet.
+See [recovery operations](recovery.md) for evidence checks and the recovery order.

@@ -57,11 +57,14 @@ to override their image tag. See [the runtime guide](docs/runtime_guide.md).
   reflection provider; `HotLoaderModule` applies its persisted JSON configuration.
 
 - `core/commit_service.py` links Git proposals and commit hashes to SQLite sessions.
-  Interrupted PREPARED records require reconciliation before further proposals.
+  Interrupted PREPARED records retain recovery evidence and block new work.
+- `core/recovery.py` reconciles Git evidence, fails stopped sessions, and explicitly
+  requeues eligible issues. See [recovery operations](docs/recovery.md).
 - `core/coordinator.py` processes one issue through an injected runner, optional
   gatekeeper proposal, session-scoped reflection, and configuration reload.
 
-The continuous scheduler, pi RPC adapter, experience-drift analysis, and frontend
+The continuous scheduler, pi RPC adapter, production recovery adapters,
+experience-drift analysis, and frontend
 are unfinished. The image runs the API and includes Python dependencies and Git;
 it does not include a `pi` agent or Docker CLI. `PROJECT.md` distinguishes verified
 phase refactors from remaining product acceptance requirements.

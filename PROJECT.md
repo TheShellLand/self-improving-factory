@@ -64,12 +64,18 @@ voting, exclusive issue claims, session outcomes, and terminal issue states exis
 
 Only one RUNNING session may be claimed through the vault at a time. A crash or
 cancellation leaves that claim visible; it is not automatically retried.
+Unresolved PREPARED Git proposals also block new claims. Recovery can fail a
+stopped session and explicitly requeue a failed issue while retaining every
+attempt. It refuses retries when any attempt has applied or unresolved Git work.
 
 Verification: `tests/test_vault.py` covers original-schema upgrades, retained
 records, transactional rollback, concurrent claims, and terminal transitions.
 
-Acceptance gaps: operational backup/restore and reconciliation of interrupted
-sessions. The migration supports the repository's original schema, not arbitrary
+Recovery verification: `tests/test_recovery.py` covers stopped-worker checks,
+audit rollback, explicit retries, and schema-v1 upgrades to evidence storage.
+
+Acceptance gaps: operational backup/restore and a production execution-stop
+verifier. The migration supports the repository's original schema, not arbitrary
 external schema variants. Initialization does not change the checked-in DB until
 explicitly invoked or the API is started against it.
 
@@ -97,25 +103,36 @@ then APPLIED/FAILED with the resulting commit hash and session ID.
 Git and SQLite do not share an atomic transaction. An interrupted PREPARED entry
 blocks another proposal until an operator reconciles Git and the audit record.
 Successful commits are not undone merely because later reflection fails.
+New proposals retain their repository, branch, original revision, message, and
+content hashes. `RecoveryService` uses this evidence to verify an applied commit
+or unchanged checkout without changing Git. Dirty, unrelated, or ambiguous state
+remains unresolved; older proposals without evidence require manual investigation.
 
 Verification: `tests/test_gatekeeper.py` and `tests/test_coordinator.py`, including
 rejected proposals, rollback, symlink/path checks, pending-intent blocking, and
 commit-to-session linkage.
 
-Acceptance gaps: production reconciliation workflow and isolation against
-concurrent filesystem writers. The gatekeeper is not an OS security sandbox.
+Verification also includes crash injection before and after Git writes,
+content mismatch rejection, and no-op reconciliation in `tests/test_recovery.py`.
+
+Acceptance gaps: production operator authentication/execution-stop adapters and
+isolation against concurrent filesystem writers. The gatekeeper is not an OS
+security sandbox. Recovery requires exclusive access to the checkout.
 
 ### Phase 5 — Human interface and audit API
 
 **Backend refactored.** Validated bug reports, viewport capture, issue listing,
 priority votes, session listing, and audit reads use the shared vault service.
 Issue listing includes terminal states so outcomes remain visible.
+The API exposes pending recovery inspection and explicit proposal/session recovery
+and issue retry routes. Mutations return 503 until the host supplies a recovery
+service and an operator authorization callback; no user-supplied actor is trusted.
 
 Verification: `tests/test_ui_bridge.py` covers persistence, validation, ordering,
 votes, and recorded input signals. FastAPI exposes the interface at `/docs`.
 
 Acceptance gaps: the browser dashboard/chat/report form, authentication and
-deployment policy, explicit human selection controls, and recovery controls.
+deployment policy, explicit human selection controls, and a recovery UI.
 The empty frontend files are not a completed UI.
 
 ### Phase 6 — Reflection and configuration loading
@@ -147,7 +164,7 @@ deterministic runner, a real temporary SQLite database, and a real temporary Git
 repository. It also tests failure, cancellation, and missing-gatekeeper behavior.
 
 Acceptance gaps: production runner/model configuration, pi RPC adapter, durable
-scheduling and recovery, human controls, and a live zero-terminal end-to-end run.
+scheduling, production recovery adapters, human controls, and a live zero-terminal end-to-end run.
 The coordinator is a library boundary, not an automatically started daemon.
 
 ## Verification and next work
@@ -163,7 +180,9 @@ bash build.sh
 Tests use temporary state and mock Docker execution. Build and HTTP smoke checks
 are separate. No result in this document establishes live model performance.
 
-Next work should implement the pi adapter against its real protocol, add explicit
-recovery operations, then connect human controls and durable scheduling. Preserve
+Next work should implement the pi adapter against its real protocol, wire the
+execution-stop verifier and operator authentication, then connect human controls
+and durable scheduling. Preserve
 the gatekeeper boundary throughout. Detailed contracts and setup live in
 `docs/signaling_schema.md`, `docs/signaling_flow_map.md`, and `docs/runtime_guide.md`.
+See `docs/recovery.md` for the recovery service contract and API workflow.

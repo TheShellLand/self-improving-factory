@@ -62,6 +62,6 @@ When a project or shared directory provides specialized helper scripts (e.g., in
 Agents tasked with analyzing, verifying, or launching system components must refer to `docs/runtime_guide.md` relative to this repository. `/root/brain` is a historical container location, not a required host path. This file contains setup logic including:
 
 1) **Docker Lifecycle**: Proper build and run procedures for core sandboxed subagents using `build.sh`, `run.sh`, and `test.sh` (located in project root).  
-2) **Environment Context**: Mandatory `$PYTHONPATH=.` settings and dependency installation steps via `./requirements_txt`.  
+2) **Environment Context**: Mandatory `$PYTHONPATH=.` settings and dependency installation steps via `requirements.txt`.
 3) **Signal Integrity**: Contractual details on RPC mode signals (`--mode rpc`) used by both the Host Orchestrator and Subagent Runners to ensure zero-terminal feedback cycles satisfy SASIAS goals. 
 Reference this guide before spawning child containers or performing deep audits of internal code paths.

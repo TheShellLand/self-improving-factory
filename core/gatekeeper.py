@@ -1,5 +1,7 @@
 """Apply file proposals to an explicitly selected Git repository."""
 import logging
+import hashlib
+import re
 from pathlib import Path
 import git
 
@@ -97,3 +99,65 @@ class GatekeeperVault:
 
     def get_last_commit(self):
         return self.repo.head.commit.hexsha if self.repo.head.is_valid() else None
+
+    def proposal_snapshot(self, message, file_changes):
+        """Capture recovery evidence without persisting proposed source contents."""
+        return {
+            "repository": str(self.root),
+            "before_sha": self.get_last_commit(),
+            "head_ref": None if self.repo.head.is_detached else self.repo.head.reference.path,
+            "message": message,
+            "files": {Path(item["filename"]).as_posix():
+                      hashlib.sha256(item["content"].encode("utf-8")).hexdigest()
+                      for item in file_changes},
+        }
+
+    def verify_recovery(self, snapshot, commit_sha=None):
+        """Read-only proof for an applied commit or an unchanged checkout.
+
+        Requires exclusive checkout access and a stopped proposal owner. Never
+        resets Git or rewrites files; ambiguous state requires manual inspection.
+        """
+        head_ref = None if self.repo.head.is_detached else self.repo.head.reference.path
+        if snapshot["repository"] != str(self.root) or snapshot["head_ref"] != head_ref:
+            raise ValueError("Recovery repository or branch does not match the proposal")
+        if self.repo.is_dirty(untracked_files=True):
+            raise ValueError("Recovery requires a clean checkout")
+        before = snapshot["before_sha"]
+        if commit_sha is None:
+            if self.get_last_commit() != before:
+                raise ValueError("Git changed; the proposal cannot be marked unapplied")
+            return
+        if not re.fullmatch(r"[0-9a-f]{40}", commit_sha) or self.get_last_commit() != commit_sha:
+            raise ValueError("Supply the full current HEAD commit hash")
+        commit = self.repo.head.commit
+        if commit_sha != before:
+            parents = [parent.hexsha for parent in commit.parents]
+            if parents != ([before] if before else []):
+                raise ValueError("Commit does not directly follow the saved revision")
+            if commit.message.rstrip("\n") != snapshot["message"].rstrip("\n"):
+                raise ValueError("Commit message differs from the proposal")
+            if before:
+                changed = {path for diff in self.repo.commit(before).diff(commit)
+                           for path in (diff.a_path, diff.b_path) if path}
+            else:
+                changed = {entry.path for entry in commit.tree.traverse() if entry.type != "tree"}
+            if not changed.issubset(snapshot["files"]):
+                raise ValueError("Commit contains files outside the proposal")
+        for filename, digest in snapshot["files"].items():
+            try:
+                blob = commit.tree / filename
+            except KeyError as error:
+                raise ValueError("A proposed file is missing from the commit") from error
+            if blob.type != "blob" or blob.mode not in (0o100644, 0o100755):
+                raise ValueError("Proposed file is not a regular Git blob")
+            expected_mode = 0o100644
+            if before:
+                try:
+                    expected_mode = (self.repo.commit(before).tree / filename).mode
+                except KeyError:
+                    pass
+            if blob.mode != expected_mode:
+                raise ValueError("Committed file mode differs from the proposal")
+            if hashlib.sha256(blob.data_stream.read()).hexdigest() != digest:
+                raise ValueError("Committed content differs from the proposal")

@@ -61,6 +61,8 @@ class Vault:
             connection.execute("BEGIN IMMEDIATE")
             if connection.execute("SELECT 1 FROM agent_sessions WHERE status = 'RUNNING'").fetchone():
                 return None
+            if connection.execute("SELECT 1 FROM commit_proposals WHERE status = 'PREPARED'").fetchone():
+                return None
             row = connection.execute(
                 "SELECT * FROM issues WHERE status IN ('OPEN', 'WAITING') "
                 "ORDER BY priority_score DESC, issue_id LIMIT 1").fetchone()

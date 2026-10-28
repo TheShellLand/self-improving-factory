@@ -21,7 +21,7 @@ def initialize_database(database_path=DATABASE_PATH):
     """Create missing tables without deleting existing records."""
     Path(database_path).parent.mkdir(parents=True, exist_ok=True)
     with connect(database_path) as connection:
-        if connection.execute("PRAGMA user_version").fetchone()[0] > 1:
+        if connection.execute("PRAGMA user_version").fetchone()[0] > 2:
             raise ValueError("Database schema is newer than this application")
         connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         connection.execute("BEGIN IMMEDIATE")
@@ -49,4 +49,7 @@ def initialize_database(database_path=DATABASE_PATH):
                            "status TEXT NOT NULL, commit_sha TEXT, error TEXT)")
         connection.execute("CREATE TABLE IF NOT EXISTS reflection_sources ("
                            "source_id TEXT PRIMARY KEY, version_number INTEGER NOT NULL)")
-        connection.execute("PRAGMA user_version = 1")
+        connection.execute("CREATE TABLE IF NOT EXISTS proposal_evidence ("
+                           "proposal_id TEXT PRIMARY KEY REFERENCES commit_proposals(proposal_id), "
+                           "snapshot TEXT NOT NULL)")
+        connection.execute("PRAGMA user_version = 2")

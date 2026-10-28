@@ -3,8 +3,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git bash \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV PYTHONPATH=/app PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
-COPY requirements_txt .
-RUN pip install --no-cache-dir -r requirements_txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY core ./core
 COPY schema ./schema
 COPY scripts ./scripts

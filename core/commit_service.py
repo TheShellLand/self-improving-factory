@@ -4,6 +4,7 @@ Git and SQLite do not share a transaction. A PREPARED record left by a crash
 must be reconciled against Git before retrying the operation.
 """
 from uuid import uuid4
+import json
 from core.database import connect
 from core.signals import SignalPulse
 from core.vault import Vault
@@ -26,6 +27,9 @@ class CommitService:
                 raise RuntimeError("An unresolved Git proposal requires reconciliation")
             connection.execute("INSERT INTO commit_proposals VALUES (?, ?, 'PREPARED', NULL, NULL)",
                                (proposal_id, session_id))
+            snapshot = self.gatekeeper.proposal_snapshot(message, file_changes)
+            connection.execute("INSERT INTO proposal_evidence VALUES (?, ?)",
+                               (proposal_id, json.dumps(snapshot, allow_nan=False)))
             Vault._record(connection, SignalPulse(source_agent="gatekeeper", action_type="ACTION_START",
                          payload={"proposal_id": proposal_id, "session_id": session_id,
                                   "message": message, "files": [item["filename"] for item in file_changes]}))
