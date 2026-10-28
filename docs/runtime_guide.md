@@ -11,7 +11,9 @@ using PyCharm must follow the python-tools skill to select its configured SDK.
 `SASIAS_DB_PATH` selects the SQLite database; the default is the project-root
 `history_vault.db`. The application does not automatically load `.env` files.
 `python -m scripts.init_vault` creates missing tables without resetting records.
-Existing incompatible schemas require an explicit migration.
+Initialization upgrades the original issue-status constraint and adds audit/link
+tables without removing existing records. Other incompatible schemas require an
+explicit migration.
 
 ## Docker lifecycle
 
@@ -44,15 +46,17 @@ PYTHONPATH=. python -m unittest discover -s tests -v
 PYTHONPATH=. python -m scripts.test_vault_write
 ```
 
-Tests use disposable state and mock Docker execution. They do not prove the
-autonomous loop is operational. The reflection provider, issue scheduler, and
-agent execution integration must be configured/implemented before that claim.
+Tests use disposable state and mock Docker execution. The coordinator integration
+test uses a deterministic runner, real temporary Git, and real temporary SQLite.
+It does not prove the live autonomous loop is operational. Production runner and
+reflection adapters, continuous scheduling, and recovery remain acceptance gaps.
 
 ## Planned signal contract
 
-Future agent runners must use `pi --mode rpc`. Inputs and observations should
-carry session identity and viewport metadata; outcomes should be recorded as
-RESULT signals. Current telemetry and executor classes remain prototypes.
+Future pi adapters must use `pi --mode rpc`. The internal `SignalPulse` envelope
+validates identity, timestamps, action types, and viewport metadata. The executor
+requires host-selected argv; it does not map the pi wire protocol itself. Runner
+and pipeline outcomes are recorded as distinct RESULT signals.
 
 ## Git proposals
 
@@ -61,3 +65,9 @@ default; pass `create=True` explicitly for new repositories. Use temporary
 directories for tests. A clean checkout and exclusive caller access are required.
 Validation and rollback cover ordinary exceptions, not concurrent writers,
 process termination, or filesystem failure during recovery.
+
+CommitService records PREPARED before applying a proposal and APPLIED/FAILED
+afterward. A remaining PREPARED record must be reconciled against Git; do not
+retry it blindly. Cancellation leaves a RUNNING session to prevent overlapping
+work. Verify the child has stopped before resolving that session. No automatic
+recovery daemon or recovery UI is implemented yet.

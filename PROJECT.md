@@ -1,71 +1,169 @@
-# Project Specification & Progress Log
+# Self-improving factory: specification and phase progress
 
-> Implementation status: this document includes historical completion claims.
-> The current verified foundation covers the issue/audit API, nondestructive
-> schema initialization, validated Git proposals, Docker command handling, and
-> reflection persistence with an injected provider. The autonomous scheduler,
-> agent RPC execution, drift analysis, and frontend remain unfinished. See
-> README.md for runnable setup and current limitations.
+## Objective
 
-## Overview
-### Objective: Autonomous Self-Improving Agent System (ASIAS)
-The primary goal of this project is to move beyond "looping" manual agent interactions in a terminal by creating an autonomous framework that improves itself as it operates live. The system must be able to reflect on its successes and failures, update internal knowledge bases about the environment/tools, and refine its own planning logic dynamically without human prompting between steps.
+Build an autonomous agent system that learns from execution outcomes, updates
+its strategies, and proposes improvements to its own source code. Human input,
+issue prioritization, and observation should ultimately happen through a web UI.
+The system should process one model task at a time and preserve evidence for
+every change. Terminal commands remain appropriate for development and setup.
 
-**No-Terminal Environment Philosophy**: Once deployed, all auditing, interaction via chat interface, and troubleshooting should occur within the web ui layer—effectively removing any need for CLI intervention unless performing core infrastructure upgrades.
+## Architectural decisions
 
-## Distributed Sandboxed Architecture: 
-To avoid nested containers while maintaining strict isolation, SASIAS uses **Distributed Orchestration**.
-1. **Parent Container (Host Manager)**: Runs the main application engine (UI Bridge, Evolution Engine, Critic). It is equipped with host docker socket access to manage life cycles of subagent executions.
-2. **Subagents (Task Runners)**: The system spawns task-specific agents into separate Docker containers as child processes.
-3. **RPC Execution**: Communication between these distributed entities occurs via `python subprocess` calls invoking the agent executable in RPC mode (`pi --mode rpc`). This allows for decoupled execution where each sandbox can be treated as a remote service by the orchestrator while maintaining strict isolation from the parent.
+- **Distributed sandboxes:** a parent host manages sibling Docker containers.
+  Only the parent needs Docker daemon access; child runners do not receive its
+  socket or write access to the parent checkout.
+- **Agent protocol:** the planned agent adapter uses `pi --mode rpc`. The internal
+  signal model is separate from that wire protocol. Live pi integration is pending.
+- **Git gatekeeper:** agents submit structured file replacements and commit
+  messages. The parent applies them through `GatekeeperVault` and GitPython.
+  This role is required for autonomous source changes; it is not an optional
+  logging utility. No agent-supplied shell command performs parent Git operations.
+- **SQLite vault:** stores issues, sessions, signals, commit outcomes, and strategy
+  updates. Git stores code history; SQLite links changes to execution context.
+- **Perspective:** preserve browser viewport data; default sandbox viewport is
+  1920 × 1080. Visual observations are optional and do not imply image analysis.
+- **Learning:** current updates are JSON configuration/prompt values. They do not
+  train or modify model parameters.
 
-## Perspective & Visual Observation Layer 
-To enable "self-improving" reflection through observation rather than just log parsing, SASIAS captures visual context:
-1. **User Context Injection**: Client browser viewport dimensions are captured at every user interaction and injected into signal logs within `history_vault.db`. These ensure bug reports match human perspective exactly.
-2. **Standardized Subagent Viewports**: The Orchestrator enforces standardized screen resolutions (e.g., $1920 \times 1080$ default) on subagents to ensure consistent image analysis results across different tasks during vision processing.
-3. **Signal Schema**: Every RPC pulse includes a mandatory optional `visual_state` field containing the base64 representation of the current UI view for auditing by both humans and agents.
+## How to read progress
 
-## Task Governance & Resource Management
-To respect hardware constraints ("One LLM resource" model), SASIAS implements an Issue Lifecycle:
--   **Bug Reporting System**: A permanent "Report Bug" button captures user state, viewport metadata, and navigation status into an internal issue queue stored in `history_vault.db`. 
--   **Priority Queue (Voting)**: Issues are stored in a dedicated table where users can vote on priority ($+$ / $-$). This provides human oversight over what tasks enter the autonomous loop first to avoid overloading system resources or causing unintended iterations.
--   **Human-in-the-loop Selection**: The orchestrator pulls high-priority issues from this board one at a time for deep analysis by the single available agent process when capacity allows.
+The old blanket “complete” claims have been replaced with verified capabilities
+and explicit acceptance gaps. A phase's refactor can be verified while its full
+product acceptance remains open. Tests using injected providers establish local
+behavior, not live agent or production reliability.
 
-## Secure Software Development Architecture
-To prevent unsafe shell access while maintaining autonomy over code growth, we use a **Commit Gateway Pattern**.
-1. **LLM Role (Content Decision)**: LLMs analyze results and generate proposed diffs and descriptive commit messages only as data objects (*not* command strings) passed through an RPC channel.
-2. **Python Core Gatekeeper (Execution authority)**: A dedicated project library handles all Git operations via `GitPython`. This ensures that state transitions in version control are atomic, audited into standard logs, and protected against raw tool injection or unauthorized history manipulation from subagents.
+### Phase 0 — Project setup and specification
 
-**Tech Stack:** 
-- Primary Language: Python
-- Core Library: `pi-coding-agent-python-sdk`
-- Web Framework: FastAPI / Flask + React for dashboard & bug reporting UI integration.
-- Version Control Logic: `gitpython`, managed internally by ORCHESTRATOR logic blocks to ensure safety compliance.
-- Communication Protocol: Host Docker Socket access with Subprocess/RPC communication core (`pi --mode rpc`).
+**Refactor verified.** Dependency manifests, runnable API entry point, Docker
+image, portable shell helpers, and setup instructions exist. Host paths are
+resolved relative to this checkout instead of assuming `/root/brain`.
 
-## Planned Tasks (Roadmap)
-*   **[x] Phase 0**: Project Initialization & Specification definition complete. Validated project structure and documentation requirements.
-*   **[x] Phase 1**: Distributed System Architecture - Finalized signaling schemas ([docs/signaling_schema.md]), core module blueprints (ExecutorCore, GatekeeperVault, ObserverModule) verified in `/root/brain/core`, and propagation map established ([docs/signaling_flow_map.md]). Checked against RPC standards ($<50\text{ms}$).
+Verification: build the image with `bash build.sh`; follow `README.md` for local
+setup and test commands. Keep this phase checklist aligned with verified behavior.
 
-*   **[x] Phase 2**: Core Vault Foundation - Initialized `history_vault.db` with multi-layered schema; successfully migrated seeding logic for Signal Feed (including $w \times h$ viewports), Issue Lifecycle (+voting priority scores), and Experience memory blocks; verified database integrity via script validation pipeline.
-*   **[x] Phase 3: Docker Orchestration Framework Completed** - Parent container setup verified using Python lifecycle managers with host socket mapping (`docker.sock`). Child sandbox spawning tested successfully verifying viewport standards, subprocess status tracking ($status$), and cleanup automation protocols are fully operational in `/root/brain/core`.
-*   **[x] Phase 4: Gatekeeper Commit Logic & Versioning System Complete** - Successfully integrated `GitPython` into core modules as a primary gateway for version control; implemented batch file updates (multi-directory support) and automated commit generation while strictly preventing raw shell injection from agent data objects. Verified against test scenarios including path creation and delta consistency.
-*   **[x] Phase 5: UX Interface Layer (Chat Bridge)** - Finalized backend implementation at `/root/brain/ui_backend/bridge.py` with FastAPI loop signal audit trail, IMS bug reporting logic ($w \times h$ viewport capture), and interactive status dashboard frontend or equivalent component structures ready to eliminate manual terminal intervention in production deployment scenario successfully verification pass confirmation state log update completion target reached milestone met perfectly fully closure success report progress marked ! [Target Completed!]
+### Phase 1 — Signals and component boundaries
 
-*   **[x] Phase 6: Reflection Engine Development** - Build Critic module logic to interpret vault experience records; implemented session correlation analysis and high-priority issue prioritization for reflection loops. Hot Loader integration completed allowing dynamic prompt weight injection via `knowledge_updates` without runtime restarts. Verified by functional blueprint checks and sync protocol tests.
-*   **Phase 7: Full Autonomy Convergence (NEXT TARGET)** - Integrate full loop where prioritized issues from human queue trigger automatic sandbox execution $\rightarrow$ observation logging $\rightarrow$ critic reflection $\rightarrow$ model weight updates in dynamic cycle with zero manual terminal intervention using the established RPC architecture.\\n
+**Internal contract implemented.** `core/signals.py` defines validated UUIDs,
+Unix timestamps, action types, JSON payloads, positive viewport dimensions, and
+optional visual state. The observer validates telemetry and can persist it.
+`core/executor.py` delegates execution instead of returning a fabricated ID.
 
-## Implementation Details
-### Core Components (Specifications)
-*   **Executor**: Orchestrates subprocess spawning via Docker sockets; enforces $1920 \times 1080$ viewport rendering on subagents by default ($w,h$) and maintains an RPC connection pool to manage multiple distributed tasks concurrently while maintaining strict isolation.
-*   **Observer**: Automatically parses child process logs/output streams using standard deviation logic; captures visual `base64` signals as they occur during task steps for ingestion into the experience memory layer.
-*   **Critic / Reflector**: Analyzes specific execution telemetry against user-provided bug reports from `history_vault.db`; translates identified friction points into persistent vectorizable update rules or new behavior weights.
-*   **Evolution Engine & Hot Loader**: Consumes critic updates to calculate prompt weightings OR operational strategy changes; uses hot loading blocks (runtime reload) of internal configuration modules without requiring container reboots or rebuilds.
-*   **Chat Bridge & Audit UI**: Captures raw human input + browser context (viewport, path depth); populates common Signal\_log entries as first-order data objects; provides a voting dashboard for humans and an audit trail for every subagent signal fired across the distributed system.
+Verification: `tests/test_signaling_contract.py`, `tests/test_vault.py`, and
+`tests/test_executor.py`.
 
-## History / Logs
-### Finalized Architecture Decision Log:
-Distributed Orchestration model adopted to solve nested containers via Host Socket access (`/var/run/docker.sock`) combined with RPC Mode Subagents (`--mode rpc`). High-resolution viewport standardization ($1920 \times 1080$) locked in both frontend capture logic and backend sandbox generation logs. Issue management implemented through prioritized SQL queue (+voting) at host level, allowing human prior prioritization of LLM tasks on single machines. Version control strictly gated by Python's `GitPython` gateway pattern (No shell commits from agents). Project established as a "Zero Terminal" system for production operation!
+Acceptance gap: map actual pi RPC events to this contract and measure latency.
+The previous sub-50 ms acknowledgment claim was never established by these tests.
 
-### Phase Completion Report
-**[Compete Update] Phase 1 & Definition:** Mapping Complete - Signal propagation flow documented ([docs/signaling_flow_map.md]), blueprints verified and schema contract active. Moving towards Migration Layer Foundation.
+### Phase 2 — Vault and issue lifecycle
+
+**Foundation implemented.** Connections close explicitly; initialization preserves
+data. A versioned upgrade extends the original issue-status constraint. The
+vault records issue creation and its INPUT signal in one transaction. Priority
+voting, exclusive issue claims, session outcomes, and terminal issue states exist.
+
+Only one RUNNING session may be claimed through the vault at a time. A crash or
+cancellation leaves that claim visible; it is not automatically retried.
+
+Verification: `tests/test_vault.py` covers original-schema upgrades, retained
+records, transactional rollback, concurrent claims, and terminal transitions.
+
+Acceptance gaps: operational backup/restore and reconciliation of interrupted
+sessions. The migration supports the repository's original schema, not arbitrary
+external schema variants. Initialization does not change the checked-in DB until
+explicitly invoked or the API is started against it.
+
+### Phase 3 — Docker orchestration
+
+**Lifecycle refactored.** Explicit argument lists, viewport settings, timeout
+handling, captured output, exit codes, and cleanup retries share one execution
+path. Async callers use a worker thread around bounded synchronous execution.
+
+Verification: `tests/test_orchestration.py` covers success, failure, missing Docker,
+and timeout cleanup; `tests/test_executor.py` checks dispatch and argument handling.
+Docker image/API smoke tests exercise the built runtime separately.
+
+Acceptance gaps: agent image containing pi, bidirectional RPC, streaming output
+with bounds, and cancellation that confirms child termination. The current image
+contains the API runtime, Python, Git, and Bash; it has no pi or Docker CLI.
+
+### Phase 4 — Gatekeeper and code audit
+
+**Gatekeeper retained and integrated.** New repositories require `create=True`.
+Proposals require a clean checkout and validated paths. Ordinary failures restore
+files and index state. `CommitService` records PREPARED intent before Git writes,
+then APPLIED/FAILED with the resulting commit hash and session ID.
+
+Git and SQLite do not share an atomic transaction. An interrupted PREPARED entry
+blocks another proposal until an operator reconciles Git and the audit record.
+Successful commits are not undone merely because later reflection fails.
+
+Verification: `tests/test_gatekeeper.py` and `tests/test_coordinator.py`, including
+rejected proposals, rollback, symlink/path checks, pending-intent blocking, and
+commit-to-session linkage.
+
+Acceptance gaps: production reconciliation workflow and isolation against
+concurrent filesystem writers. The gatekeeper is not an OS security sandbox.
+
+### Phase 5 — Human interface and audit API
+
+**Backend refactored.** Validated bug reports, viewport capture, issue listing,
+priority votes, session listing, and audit reads use the shared vault service.
+Issue listing includes terminal states so outcomes remain visible.
+
+Verification: `tests/test_ui_bridge.py` covers persistence, validation, ordering,
+votes, and recorded input signals. FastAPI exposes the interface at `/docs`.
+
+Acceptance gaps: the browser dashboard/chat/report form, authentication and
+deployment policy, explicit human selection controls, and recovery controls.
+The empty frontend files are not a completed UI.
+
+### Phase 6 — Reflection and configuration loading
+
+**Provider boundary implemented.** A caller-supplied reflection provider receives
+the issue and exact-session evidence. Session-scoped updates are deduplicated
+and versioned transactionally with a REFLECTION signal. The loader consumes
+updates by insertion ID, so equal timestamps do not skip records.
+
+Verification: `tests/test_convergence.py` and `tests/test_coordinator.py` cover
+persistence, deduplication, exact session matching, and configuration loading.
+
+Acceptance gaps: a real analysis provider, drift evaluation, strategy quality
+measurement, and handling invalid legacy updates. An invalid update stops the
+loader at that record until corrected. The legacy batch reflection API leaves
+deduplication to its caller; the coordinator uses session-scoped reflection.
+
+### Phase 7 — Convergence and autonomy
+
+**Coordinator implemented; autonomy acceptance pending.** `Coordinator.run_once()`
+claims one issue, loads configuration, invokes an injected async runner, records
+observations/results, applies successful code proposals through the gatekeeper,
+reflects, reloads configuration, and closes the session/issue. Failed executions
+never apply code proposals. Exceptions mark the attempt FAILED; cancellation
+retains the RUNNING claim for reconciliation.
+
+Verification: `tests/test_coordinator.py` exercises the entire flow with a
+deterministic runner, a real temporary SQLite database, and a real temporary Git
+repository. It also tests failure, cancellation, and missing-gatekeeper behavior.
+
+Acceptance gaps: production runner/model configuration, pi RPC adapter, durable
+scheduling and recovery, human controls, and a live zero-terminal end-to-end run.
+The coordinator is a library boundary, not an automatically started daemon.
+
+## Verification and next work
+
+Run the complete regression suite with the configured interpreter:
+
+```sh
+PYTHONPATH=. python -m unittest discover -s tests -v
+PYTHONPATH=. python -m scripts.test_vault_write
+bash build.sh
+```
+
+Tests use temporary state and mock Docker execution. Build and HTTP smoke checks
+are separate. No result in this document establishes live model performance.
+
+Next work should implement the pi adapter against its real protocol, add explicit
+recovery operations, then connect human controls and durable scheduling. Preserve
+the gatekeeper boundary throughout. Detailed contracts and setup live in
+`docs/signaling_schema.md`, `docs/signaling_flow_map.md`, and `docs/runtime_guide.md`.

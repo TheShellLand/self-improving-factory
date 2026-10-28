@@ -1,29 +1,22 @@
-## Signal Propagation Map
-The SASIAS system follows a strictly unidirectional flow from user intent to observation, creating an immutable trail that fuels the Evolution engine. Every action is mapped as follows:
+# Signal and state flow
 
-### 1. Request Layer (Chat Bridge)
-*   **Source**: User Browser / Frontend UI.
-*   **Action**: Human input signal or automated request entry ("Report Bug").
-*   **Ingestion Logic**: The **Chat Bridge** captures raw signals including `client_viewport` and standardizes they into initial components of our RPC pulse protocol (`SignalPulse`).
-*   **Destination/Log**: Injected into `history_vault.db` in the `trace_signals` table with type 'INPUT'.
-    * *Metadata captured*: `$w`, `$h$`, browser path, user timestamp.
+1. The API validates a report. The vault inserts its issue and INPUT signal in
+   one SQLite transaction.
+2. The coordinator exclusively claims the next issue, records its RUNNING session
+   and ACTION_START, and loads the current configuration.
+3. A host-supplied async runner executes the task. Its structured outcome becomes
+   OBSERVATION and RESULT events with the host-assigned session ID.
+4. Successful code proposals pass through CommitService and GatekeeperVault.
+   PREPARED intent and ACTION_START precede Git changes; APPLIED/FAILED and a
+   gatekeeper RESULT follow. Unresolved intent blocks another proposal.
+5. The reflection provider sees exact-session evidence. A session-scoped update
+   and REFLECTION signal are committed together, then loaded by insertion ID.
+6. The vault records the pipeline RESULT and final session/issue states together.
 
-### 2. Orchestration Layer (Parent Core)
-*   **Processing Engine**: The Parent Container processes an allowed subset of "Input" logs to determine appropriate sub-tasks or issues priorities ($+/-$).
-*   **Action Output**: The **ExecutorCore** receives a task ID from the bridge signal and proceeds to provision resources for child containers using `/var/run/docker.sock`.
-*   **Bridge Communication**: Task initialization results are prepended as new signals in `trace_signals` via the RPC loop backend logic (`pi --mode rpc`).
+Runner exceptions produce FAILED attempts. A failed execution cannot apply code
+changes. A reflection failure after a Git commit does not undo that commit; the
+audit record retains its hash. Cancellation retains RUNNING state for recovery.
 
-### 3. Sandbox Execution Layer (Child Subagents)
-*   **Subagent Run**: Spun up with environment standardization rules applied at launch time: Force $1920 \times 1080$ viewport resolutions unless specific overrides exist or were injected by high-level human perspective captures.
-*   **Realtime Pulses**: During execution, subagents pulse pulses back to Parent containers using `--mode rpc`. These include standard telemetry and optional `base64` visual reports for observation logs ($w$, $h$).
-    * *Output*: Logged into the vault as 'OBSERVATION' / 'RESULT'.
-
-### 4. Reflection & Gateway Layer (Gatekeeper/Critic)
-*   **Observation Analysis**: The **ObserverModule** consumes valid results from child agents; it tags successes versus friction points.
-*   **Decision Outcome**: If a failure or bug is verified during reflection, the logic reaches the **GatekeeperVault**.
-*   **Version Control Execution**: Only here does actual state change occur in Git via internal library calls (`GitPython`), ensuring that LLM-generated diffs are sanitized and applied according to atomic commit rules without direct shell access for source control commands!
-    * *Log Closing*: Final signal pulse marks completion / closure of 'ACTION_START' signals with final execution status (SUCCESS/FAILURE).
-
----
-### Verifiable Flow Summary: 
-$\text{Chat Bridge} \rightarrow \text{history\_vault.db (INPUT)} \xrightarrow{\text{Parent Logic}} \text{Docker Launch ($\dots$ RPC pulses $\dots$)} \rightarrow \text{history\_vault.db (OBSERVATION, RESULT)}$
+The live pi RPC adapter, continuous scheduler, browser controls, and recovery UI
+remain acceptance gaps. `tests/test_coordinator.py` verifies this flow using an
+injected runner, not an external model.

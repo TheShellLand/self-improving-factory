@@ -63,3 +63,20 @@ class TestGatekeeper(unittest.TestCase):
         self.assertFalse((self.root / "new").exists())
         self.assertFalse(self.vault.repo.is_dirty(untracked_files=True))
         self.assertEqual(self.vault.get_last_commit(), sha)
+
+    def test_parent_file_is_rejected_without_touching_existing_content(self):
+        self.assertTrue(self.commit("parent", "keep"))
+        with self.assertLogs("core.gatekeeper", level="ERROR"):
+            self.assertFalse(self.commit("parent/child"))
+        self.assertEqual((self.root / "parent").read_text(), "keep")
+        self.assertFalse(self.vault.repo.is_dirty())
+
+    def test_tracked_symlink_cannot_modify_external_file(self):
+        outside = self.root.parent / "outside"
+        outside.write_text("keep")
+        (self.root / "link").symlink_to(outside)
+        self.vault.repo.index.add(["link"])
+        self.vault.repo.index.commit("Track symlink")
+        with self.assertLogs("core.gatekeeper", level="ERROR"):
+            self.assertFalse(self.commit("link", "overwrite"))
+        self.assertEqual(outside.read_text(), "keep")

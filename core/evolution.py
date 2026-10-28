@@ -3,6 +3,8 @@ import json
 import time
 from core.critic import CriticModule
 from core.database import connect
+from core.signals import SignalPulse
+from core.vault import Vault
 
 
 class EvolutionEngine:
@@ -35,13 +37,34 @@ class EvolutionEngine:
                     update["logic_description"], update["prompt_weights"]))
         return versions
 
-    def _commit_knowledge_update(self, desc, weights):
+    def reflect_session(self, issue, session_id):
+        """Persist at most one provider update for a completed execution attempt."""
+        if self.reflection_provider is None:
+            raise RuntimeError("Configure a reflection provider before running a cycle")
+        with connect(self.db_path) as connection:
+            existing = connection.execute(
+                "SELECT version_number FROM reflection_sources WHERE source_id = ?", (session_id,)).fetchone()
+        if existing:
+            return existing[0]
+        traces = CriticModule(self.db_path).correlate_failures_to_signals(session_id)
+        update = self.reflection_provider(issue, traces)
+        if update is None:
+            return None
+        return self._commit_knowledge_update(
+            update["logic_description"], update["prompt_weights"], source_id=session_id)
+
+    def _commit_knowledge_update(self, desc, weights, *, source_id=None):
         weights = json.loads(weights) if isinstance(weights, str) else weights
         if not isinstance(weights, dict):
             raise ValueError("Prompt weights must be a JSON object")
         encoded = json.dumps(weights, allow_nan=False)
         with connect(self.db_path) as connection:
             connection.execute("BEGIN IMMEDIATE")
+            if source_id is not None:
+                existing = connection.execute(
+                    "SELECT version_number FROM reflection_sources WHERE source_id = ?", (source_id,)).fetchone()
+                if existing:
+                    return existing[0]
             version = connection.execute(
                 "SELECT COALESCE(MAX(version_number), 0) + 1 FROM knowledge_updates"
             ).fetchone()[0]
@@ -49,4 +72,8 @@ class EvolutionEngine:
                 "INSERT INTO knowledge_updates "
                 "(applied_at, version_number, logic_description, prompt_weights) VALUES (?, ?, ?, ?)",
                 (time.time(), version, desc, encoded))
+            if source_id is not None:
+                connection.execute("INSERT INTO reflection_sources VALUES (?, ?)", (source_id, version))
+                Vault._record(connection, SignalPulse(source_agent="evolution", action_type="REFLECTION",
+                             payload={"session_id": source_id, "version_number": version}))
         return version

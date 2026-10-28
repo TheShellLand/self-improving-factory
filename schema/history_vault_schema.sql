@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS issues (
     issue_id TEXT PRIMARY KEY,         -- Unique issue tracking ID 
     title TEXT,                        -- Short desc from human input or log detection
     content TEXT,                      -- Context blob with raw state
-    status TEXT CHECK(status IN ('OPEN', 'WAITING', 'IN PROGRESS', 'REJECTED')),
+    status TEXT CHECK(status IN ('OPEN', 'WAITING', 'IN PROGRESS', 'REJECTED', 'CLOSED', 'FAILED')),
     priority_score REAL DEFAULT 0.5,   -- Base logic score based on voting counts (+/-)
     viewport_snapshot TEXT              -- Metadata captured at bug report time ($w \times h$)
 );

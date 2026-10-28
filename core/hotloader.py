@@ -2,6 +2,7 @@
 import json
 import logging
 import threading
+from copy import deepcopy
 from core.database import connect
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ class HotLoaderModule:
         self._stop_event = threading.Event()
 
     def get_active_config(self):
-        return self._active_config.copy()
+        return deepcopy(self._active_config)
 
     def _fetch_pending_updates(self):
         with connect(self.db_path) as connection:

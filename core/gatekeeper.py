@@ -42,6 +42,8 @@ class GatekeeperVault:
                     break
                 if path.is_symlink():
                     raise ValueError(f"Symlink paths are not supported: {name}")
+                if path != target and path.exists() and not path.is_dir():
+                    raise ValueError(f"Parent is not a directory: {name}")
                 if path.is_dir() and (path / ".git").exists():
                     raise ValueError(f"Nested repositories are not supported: {name}")
             if target.exists() and not target.is_file():

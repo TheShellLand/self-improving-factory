@@ -13,4 +13,4 @@ class TestSignalingContract(unittest.TestCase):
 
     def test_core_blueprints_instantiation(self):
         self.assertEqual(ExecutorCore("/var/run/docker.sock")._registry, {})
-        self.assertTrue(ObserverModule().process_telemetry({"signal_id": "123"}))
+        self.assertTrue(ObserverModule().process_telemetry(SignalPulse().model_dump()))

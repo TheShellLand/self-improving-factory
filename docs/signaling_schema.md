@@ -1,60 +1,39 @@
-# SASIAS RPC & Signaling Contract - v1.0
+# Internal signal contract
 
-## Purpose
-To provide a strictly typed communication protocol for all distributed subagents interacting with the Parent Orchestrator via `--mode rpc`. This ensures that every 'pulse' or observation is consistent enough for automated reflection loops (Critic/Evolution Engine).
+`core.signals.SignalPulse` is the source of truth. This is an internal event
+envelope, not a claim of compatibility with pi's RPC wire messages.
 
-## Base Message Structure (`Signal`)
-Every signal must be serializable into JSON and include these mandatory keys:
+| Field | Contract |
+| --- | --- |
+| `signal_id` | UUID string, generated when omitted |
+| `timestamp` | Finite nonnegative Unix seconds |
+| `source_agent` | Nonempty component/agent name |
+| `action_type` | INPUT, ACTION_START, OBSERVATION, RESULT, REFLECTION |
+| `payload` | JSON object; session events include `session_id` |
+| `metadata` | JSON object for additional context |
+| `viewport` | Positive integer width/height; defaults to 1920/1080 |
+| `visual_state` | Optional JSON object; no image analysis is implied |
 
-- `signal_id`: UUIDv4 string.
-- `timestamp`: ISO8601 UTC float/string.
-- `source_agent`: Name of the sandbox agent ID.
-- `action_type`: Enum [INPUT | ACTION_START | OBSERVATION | RESULT | REFLECTION].
-- `payload`: Dictionary containing specifics to the action type.
-- `metadata`: 
-    - `subagent_context`: { "shell": "bash", "executor": "docker" }
-    - `viewport_standard`: { "w": 1920, "h": 1080 }
+Example execution result:
 
-## Specific Payloads
-
-### Input (User Pulse)
-Captured via Chat Bridge:
 ```json
 {
-  "user_id": "string",
-  "command": "raw text input from user",
-  "client_perspective": {
-    "width": integer,
-    "height": integer,
-    "session_depth": integer
-  }
+  "signal_id": "cf974c42-d37f-469d-a185-af55b813fe32",
+  "timestamp": 1790000000.0,
+  "source_agent": "runner",
+  "action_type": "RESULT",
+  "payload": {"session_id": "session-1", "success": true, "summary": "Checks passed"},
+  "metadata": {},
+  "viewport": {"width": 1920, "height": 1080},
+  "visual_state": null
 }
 ```
 
-### Observation (Visual/Pulse)
-Sent by Subagents during execution:
-```json
-{
-  "step_index": integer,
-  "status": ["success", "failure", "pending"],
-  "visual_state": {
-    "base64_data": "...",
-    "viewport": {"w": 1920, "h": 1080},
-    "description": "string describing current UI focus"
-  },
-  "stdout_chunk": "bytes or string snippet"
-}
-```
+The vault validates before insertion. Viewport and visual data are stored inside
+the existing SQL metadata column. Duplicate signal IDs fail rather than silently
+replacing evidence. Payloads must be JSON serializable without NaN/Infinity.
+Legacy initialization rows predate the UUID contract and remain unchanged.
 
-### Result (Signal Closure)
-Final signal emitted at sandbox termination:
-```json
-{
-  "exit_code": integer,
-  "summary": "brief summary of subtask success/fail",
-  "artifacts\": [\"list of modified files and their diff hashes\"] }
-```
-
-## Quality Constraints
--   **Latency**: Signal pulses must be acknowledged by Parent within <50ms.
--   **Auditability**: Every `signal_id` from a Subagent MUST appear in the 'trace_signals' table before it can modify any project state via an Executor call.
+Runner, gatekeeper, and coordinator RESULT events have distinct `source_agent`
+values: execution completion, Git outcome, and final pipeline outcome are separate.
+No acknowledgment latency guarantee has yet been measured.

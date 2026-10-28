@@ -1,23 +1,29 @@
 """HTTP access to the audit trail and issue queue."""
 from contextlib import asynccontextmanager
-import json
-import uuid
-from fastapi import FastAPI
+from typing import Literal
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from core.config import DATABASE_PATH
 from core.database import connect, initialize_database
+from core.signals import Viewport
+from core.vault import Vault
 
 
 class BugReport(BaseModel):
     title: str = Field(min_length=1)
     description: str
     path_depth: int = Field(default=0, ge=0)
-    client_viewport: dict[str, int] = Field(default_factory=dict)
+    client_viewport: Viewport = Field(default_factory=Viewport)
     context_blob: dict = Field(default_factory=dict)
     priority: float = Field(default=10.0, allow_inf_nan=False)
 
 
+class Vote(BaseModel):
+    delta: Literal[-1, 1]
+
+
 def create_app(database_path=DATABASE_PATH):
+    vault = Vault(database_path)
     @asynccontextmanager
     async def lifespan(app):
         initialize_database(database_path)
@@ -33,22 +39,26 @@ def create_app(database_path=DATABASE_PATH):
 
     @application.post("/api/report-bug")
     def report_bug(data: BugReport):
-        issue_id = str(uuid.uuid4())
-        with connect(database_path) as connection:
-            connection.execute(
-                "INSERT INTO issues (issue_id, title, content, status, priority_score, "
-                "viewport_snapshot) VALUES (?, ?, ?, 'OPEN', ?, ?)",
-                (issue_id, data.title, data.model_dump_json(), data.priority,
-                 json.dumps(data.client_viewport)),
-            )
+        issue_id = vault.create_issue(data.model_dump())
         return {"status": "recorded", "issue_id": issue_id}
 
     @application.get("/api/issues")
     def list_priority_issues():
+        return vault.list_issues()
+
+    @application.post("/api/issues/{issue_id}/vote")
+    def vote(issue_id: str, data: Vote):
+        try:
+            vault.vote(issue_id, data.delta)
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"status": "recorded"}
+
+    @application.get("/api/sessions")
+    def sessions():
         with connect(database_path) as connection:
             return [dict(row) for row in connection.execute(
-                "SELECT * FROM issues WHERE status IN ('OPEN', 'WAITING') "
-                "ORDER BY priority_score DESC LIMIT 20")]
+                "SELECT * FROM agent_sessions ORDER BY start_time DESC LIMIT 100")]
 
     return application
 
