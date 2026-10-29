@@ -45,7 +45,7 @@ class DockerOrchestrationEngine:
     def spawn_child(self, image, command, task_name=None, viewports=(1920, 1080)):
         if not isinstance(command, (list, tuple)) or not command or any(not isinstance(arg, str) for arg in command):
             raise ValueError("An explicit argument list is required")
-        container_id = f"sasias_{uuid.uuid4().hex}"
+        container_id = f"sif_{uuid.uuid4().hex}"
         config = SandboxConfig(container_id, image, viewport=viewports)
         docker_cmd = config.docker_args() + list(command)
         status = ChildTaskStatus(container_id, image, list(command), status="RUNNING")

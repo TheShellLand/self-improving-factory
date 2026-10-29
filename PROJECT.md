@@ -1,4 +1,4 @@
-# Self-improving factory: specification and phase progress
+# Self-improving factory (SIF): specification and phase progress
 
 ## Objective
 

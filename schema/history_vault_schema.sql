@@ -1,4 +1,4 @@
--- Database Schema Initialization for SASIAS History Vault
+-- Database Schema Initialization for SIF History Vault
 
 PRAGMA foreign_keys = ON;
 

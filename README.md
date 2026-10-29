@@ -1,4 +1,4 @@
-# Self-improving factory
+# Self-improving factory (SIF)
 
 A Python foundation for recording agent activity, managing issues, applying Git proposals, and loading reflection updates.
 
@@ -14,7 +14,7 @@ PYTHONPATH=. .venv/bin/python -m scripts.main
 ```
 
 The API listens on port 8000; interactive API documentation is at `/docs`.
-Set `SASIAS_DB_PATH` to choose a database location. The default is
+Set `SIF_DB_PATH` to choose a database location. The default is
 `history_vault.db` in the repository root. Initialization creates missing tables
 and upgrades the original issue-status constraint while preserving records.
 Other incompatible schemas require an explicit migration. Environment
@@ -31,14 +31,18 @@ curl -X POST http://localhost:8000/api/report-bug \
 
 ```sh
 bash build.sh
-docker run --rm -p 8000:8000 -e SASIAS_DB_PATH=/data/history_vault.db \
-  -v sasias-data:/data sasias_runtime
+docker run --rm -p 8000:8000 -e SIF_DB_PATH=/data/history_vault.db \
+  -v sif-data:/data sif_runtime
 ```
 
 `bash run.sh` starts an idle development container with the checkout mounted.
 `bash test.sh` opens an interactive shell with the same mount. Both helpers work
-from any directory, including checkout paths containing spaces. Set `SASIAS_IMAGE`
+from any directory, including checkout paths containing spaces. Set `SIF_IMAGE`
 to override their image tag. See [the runtime guide](docs/runtime_guide.md).
+
+When upgrading an existing deployment, update exported variables to `SIF_DB_PATH`
+and `SIF_IMAGE`, and rebuild the image as `sif_runtime`. Reuse the existing Docker
+data volume to retain your database; `sif-data` above is the name for a new setup.
 
 ## Components
 

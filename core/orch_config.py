@@ -7,7 +7,7 @@ from core.signals import Viewport
 @dataclass
 class SandboxConfig:
     container_name: str
-    image_name: str = "sasias_runtime"
+    image_name: str = "sif_runtime"
     gpu_alloc: int = 0
     viewport: tuple[int, int] = (1920, 1080)
 
@@ -16,7 +16,7 @@ class SandboxConfig:
         if not self.image_name or self.image_name.startswith("-"):
             raise ValueError("An image name is required")
         args = ["docker", "run", "--rm", "--name", self.container_name,
-                "-e", f"SASIAS_VIEWPORT={viewport.width}x{viewport.height}", "--network", "host"]
+                "-e", f"SIF_VIEWPORT={viewport.width}x{viewport.height}", "--network", "host"]
         if self.gpu_alloc:
             args.extend(["--gpus", str(self.gpu_alloc)])
         return [*args, self.image_name]

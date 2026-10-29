@@ -8,7 +8,7 @@ your configured interpreter's `-m pip install -r requirements.txt`; use
 `requirements-dev.txt` for tests. Activate a virtual environment first. Agents
 using PyCharm must follow the python-tools skill to select its configured SDK.
 
-`SASIAS_DB_PATH` selects the SQLite database; the default is the project-root
+`SIF_DB_PATH` selects the SQLite database; the default is the project-root
 `history_vault.db`. The application does not automatically load `.env` files.
 `python -m scripts.init_vault` creates missing tables without resetting records.
 Initialization upgrades the original issue-status constraint and adds audit/link
@@ -19,17 +19,17 @@ explicit migration.
 
 With Docker Engine 26+ running:
 
-1. Run `bash build.sh` to build `sasias_runtime`.
+1. Run `bash build.sh` to build `sif_runtime`.
 2. Run `bash run.sh` for an idle development container, or `bash test.sh` for an
    interactive verification shell. Both mount this checkout at `/app` and set
-   `SASIAS_VIEWPORT=1920x1080`. The image sets `PYTHONPATH=/app`.
+   `SIF_VIEWPORT=1920x1080`. The image sets `PYTHONPATH=/app`.
 3. Stop an idle container using `docker rm -f <container-name>` when done.
 
 For the API with persistent storage:
 
 ```sh
-docker run --rm -p 8000:8000 -e SASIAS_DB_PATH=/data/history_vault.db \
-  -v sasias-data:/data sasias_runtime
+docker run --rm -p 8000:8000 -e SIF_DB_PATH=/data/history_vault.db \
+  -v sif-data:/data sif_runtime
 ```
 
 The image includes Python, Git, Bash, and the application dependencies. Its
