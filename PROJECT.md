@@ -38,9 +38,12 @@ every change. Terminal commands remain appropriate for development and setup.
 
 ## How to read progress
 
-Each phase lists what works and what still needs to be built or tested.
-Passing local tests does not mean that a phase works with a live agent.
-Tests using injected providers check local behavior, not live model performance.
+`[x]` means implemented and verified at the scope described; `[ ]` means work or
+verification remains. Check off tasks only when tool results support completion.
+Tasks in earlier phases that point to later phases track the same remaining work;
+update both when that work is verified. Passing injected-provider tests does not
+establish live agent performance. All phases follow the automonisaur reuse,
+config/client, and environment-credential rules above.
 
 ## Automonisaur refactor
 
@@ -62,139 +65,236 @@ Existing names `GatekeeperVault` and `DockerOrchestrationEngine`, plus database
 and application factory functions, remain compatibility entry points.
 This refactor does not implement the unfinished live-agent features below.
 
+## Phase tasks
+
 ### Phase 0 — Project setup and specification
 
-**Refactor verified.** Dependency manifests, runnable API entry point, Docker
-image, portable shell helpers, and setup instructions exist. Host paths are
-resolved relative to this checkout instead of assuming `/root/brain`.
+- [x] Add dependency manifests and a runnable API entry point.
+- [x] Build the API Docker image and verify its HTTP endpoint.
+- [x] Make shell helpers and host paths portable across checkout locations.
+- [x] Document local setup and verification commands in `README.md`.
+- [x] Refactor settings into config classes and connections into client classes,
+  reuse automonisaur's environment helper, and document reuse decisions.
 
-Verification: build the image with `bash build.sh`; follow `README.md` for local
-setup and test commands. Keep this phase checklist aligned with verified behavior.
+Evidence: `tests/test_configuration.py`, successful `bash build.sh`, and the
+container API smoke check. Keep setup instructions aligned with later changes.
 
 ### Phase 1 — Signals and component boundaries
 
-**Internal contract implemented.** `core/signals.py` defines validated UUIDs,
-Unix timestamps, action types, JSON payloads, positive viewport dimensions, and
-optional visual state. The observer validates telemetry and can persist it.
-`core/executor.py` delegates execution instead of returning a fabricated ID.
+- [x] Validate signal UUIDs, Unix timestamps, action types, JSON payloads,
+  positive viewport dimensions, and optional visual state.
+- [x] Validate and persist observer telemetry.
+- [x] Delegate executor calls to real execution logic instead of fabricated IDs.
+- [ ] Map actual pi RPC events to session-linked signals (Phase 8).
+- [ ] Measure live event latency (Phase 8); the former sub-50 ms claim is unverified.
 
-Verification: `tests/test_signaling_contract.py`, `tests/test_vault.py`, and
+Evidence: `tests/test_signaling_contract.py`, `tests/test_vault.py`, and
 `tests/test_executor.py`.
-
-Still needed: map actual pi RPC events to this contract and measure latency.
-The previous sub-50 ms acknowledgment claim was never established by these tests.
 
 ### Phase 2 — Vault and issue lifecycle
 
-**Foundation implemented.** Connections close explicitly; initialization preserves
-data. A versioned upgrade extends the original issue-status constraint. The
-vault records issue creation and its INPUT signal in one transaction. Priority
-voting, exclusive issue claims, session outcomes, and terminal issue states exist.
+- [x] Close connections explicitly and initialize tables without resetting data.
+- [x] Upgrade the original issue-status constraint through a versioned migration.
+- [x] Record issue creation and its INPUT signal in one transaction.
+- [x] Implement priority votes, exclusive issue claims, and terminal session/issue states.
+- [x] Block new claims while a RUNNING session or PREPARED proposal remains unresolved.
+- [x] Preserve interrupted attempts and require explicit recovery and retry.
+- [x] Reject retries when an attempt has applied or unresolved Git work.
+- [ ] Connect a production execution-stop verifier (Phase 14).
+- [ ] Implement and exercise backup/restore procedures (Phase 14).
 
-Only one RUNNING session may be claimed through the vault at a time. A crash or
-cancellation leaves that claim visible; it is not automatically retried.
-Unresolved PREPARED Git proposals also block new claims. Recovery can fail a
-stopped session and explicitly requeue a failed issue while retaining every
-attempt. It refuses retries when any attempt has applied or unresolved Git work.
-
-Verification: `tests/test_vault.py` covers original-schema upgrades, retained
-records, transactional rollback, concurrent claims, and terminal transitions.
-
-Recovery verification: `tests/test_recovery.py` covers stopped-worker checks,
-audit rollback, explicit retries, and schema-v1 upgrades to evidence storage.
-
-Still needed: operational backup/restore and a production execution-stop
-verifier. The migration supports the repository's original schema, not arbitrary
-external schema variants. Initialization does not change the checked-in DB until
-explicitly invoked or the API is started against it.
+Evidence: `tests/test_vault.py` and `tests/test_recovery.py`, including migration,
+rollback, concurrent claims, recovery audit, and evidence-storage upgrades.
+Migration supports the repository's original schema, not arbitrary external
+variants. The checked-in DB changes only when initialization is explicitly run
+or the API starts against it.
 
 ### Phase 3 — Docker orchestration
 
-**Lifecycle refactored.** Explicit argument lists, viewport settings, timeout
-handling, captured output, exit codes, and cleanup retries share one execution
-path. Async callers use a worker thread around bounded synchronous execution.
+- [x] Construct explicit argv with viewport settings.
+- [x] Capture output and exit codes, enforce execution timeouts, and retry cleanup.
+- [x] Expose synchronous execution to async callers through a worker thread.
+- [x] Verify the built API runtime separately from mocked Docker tests.
+- [ ] Package pi and its dependencies in an agent image (Phase 9).
+- [ ] Connect bidirectional RPC and bounded streaming output (Phase 9).
+- [ ] Confirm child termination on cancellation (Phase 9).
 
-Verification: `tests/test_orchestration.py` covers success, failure, missing Docker,
-and timeout cleanup; `tests/test_executor.py` checks dispatch and argument handling.
-Docker image/API smoke tests exercise the built runtime separately.
-
-Still needed: agent image containing pi, bidirectional RPC, streaming output
-with bounds, and cancellation that confirms child termination. The current image
-contains the API runtime, Python, Git, and Bash; it has no pi or Docker CLI.
+Evidence: `tests/test_orchestration.py`, `tests/test_executor.py`, and Docker/API
+smoke checks. The current image contains Python, Git, Bash, and the API, but no
+pi or Docker CLI.
 
 ### Phase 4 — Gatekeeper and code audit
 
-**Gatekeeper retained and integrated.** New repositories require `create=True`.
-Proposals require a clean checkout and validated paths. Ordinary failures restore
-files and index state. `CommitService` records PREPARED intent before Git writes,
-then APPLIED/FAILED with the resulting commit hash and session ID.
+- [x] Require explicit `create=True` when creating a Git repository.
+- [x] Require a clean checkout and validate proposed paths, including symlink checks.
+- [x] Restore files and index state after ordinary write or commit failures.
+- [x] Record PREPARED intent before Git writes and APPLIED/FAILED outcomes with
+  commit hashes and session IDs.
+- [x] Block further proposals until interrupted PREPARED intent is reconciled.
+- [x] Retain repository, branch, base revision, message, and content-hash evidence.
+- [x] Verify applied commits or unchanged checkouts during read-only recovery;
+  leave dirty, unrelated, ambiguous, or evidence-free proposals unresolved.
+- [x] Preserve successful commits if subsequent reflection fails.
+- [ ] Verify proposed code in isolation before promotion (Phase 10).
+- [ ] Protect application and recovery against concurrent filesystem writers.
+- [ ] Connect production operator authorization and execution-stop adapters (Phase 14).
 
-Git and SQLite do not share an atomic transaction. An interrupted PREPARED entry
-blocks another proposal until an operator reconciles Git and the audit record.
-Successful commits are not undone merely because later reflection fails.
-New proposals retain their repository, branch, original revision, message, and
-content hashes. `RecoveryService` uses this evidence to verify an applied commit
-or unchanged checkout without changing Git. Dirty, unrelated, or ambiguous state
-remains unresolved; older proposals without evidence require manual investigation.
-
-Verification: `tests/test_gatekeeper.py` and `tests/test_coordinator.py`, including
-rejected proposals, rollback, symlink/path checks, pending-intent blocking, and
-commit-to-session linkage.
-
-Verification also includes crash injection before and after Git writes,
-content mismatch rejection, and no-op reconciliation in `tests/test_recovery.py`.
-
-Still needed: production operator authentication/execution-stop adapters and
-isolation against concurrent filesystem writers. The gatekeeper is not an OS
-security sandbox. Recovery requires exclusive access to the checkout.
+Evidence: `tests/test_gatekeeper.py`, `tests/test_coordinator.py`, and
+`tests/test_recovery.py`, including crash injection, content mismatch, and no-op
+reconciliation. Git and SQLite are not one atomic transaction. The gatekeeper
+is not an OS sandbox; callers must provide exclusive checkout access.
 
 ### Phase 5 — Human interface and audit API
 
-**Backend refactored.** Validated bug reports, viewport capture, issue listing,
-priority votes, session listing, and audit reads use the shared vault service.
-Issue listing includes terminal states so outcomes remain visible.
-The API exposes pending recovery inspection and explicit proposal/session recovery
-and issue retry routes. Mutations return 503 until the host supplies a recovery
-service and an operator authorization callback; no user-supplied actor is trusted.
+- [x] Validate and persist bug reports, viewport data, and priority votes.
+- [x] Expose issues, including terminal states, sessions, and audit records.
+- [x] Expose pending recovery inspection and proposal/session recovery and retry routes.
+- [x] Disable recovery mutations with 503 until host recovery and authorization
+  callbacks are supplied; do not trust a user-supplied actor.
+- [x] Expose interactive API documentation at `/docs`.
+- [ ] Build the browser dashboard, chat/report form, and task selection controls (Phase 13).
+- [ ] Build browser recovery controls (Phase 13).
+- [ ] Implement production authentication and deployment policy (Phase 14).
 
-Verification: `tests/test_ui_bridge.py` covers persistence, validation, ordering,
-votes, and recorded input signals. FastAPI exposes the interface at `/docs`.
-
-Still needed: the browser dashboard/chat/report form, authentication and
-deployment policy, explicit human selection controls, and a recovery UI.
-The empty frontend files are not a completed UI.
+Evidence: `tests/test_ui_bridge.py` and recovery API tests in
+`tests/test_recovery.py`. Empty frontend files do not count as a completed UI.
 
 ### Phase 6 — Reflection and configuration loading
 
-**Provider boundary implemented.** A caller-supplied reflection provider receives
-the issue and exact-session evidence. Session-scoped updates are deduplicated
-and versioned transactionally with a REFLECTION signal. The loader consumes
-updates by insertion ID, so equal timestamps do not skip records.
+- [x] Provide an injectable reflection interface using issue and exact-session evidence.
+- [x] Deduplicate session-scoped updates and version them transactionally with
+  a REFLECTION signal.
+- [x] Load configuration by insertion ID so equal timestamps do not skip updates.
+- [ ] Connect a real analysis client (Phase 12).
+- [ ] Evaluate drift and measure strategy quality (Phase 12).
+- [ ] Handle invalid legacy updates without silently losing later records (Phase 12).
 
-Verification: `tests/test_convergence.py` and `tests/test_coordinator.py` cover
-persistence, deduplication, exact session matching, and configuration loading.
-
-Still needed: a real analysis provider, drift evaluation, strategy quality
-measurement, and handling invalid legacy updates. An invalid update stops the
-loader at that record until corrected. The legacy batch reflection API leaves
-deduplication to its caller; the coordinator uses session-scoped reflection.
+Evidence: `tests/test_convergence.py` and `tests/test_coordinator.py`.
+An invalid update currently blocks the loader until corrected. The legacy batch
+API leaves deduplication to its caller; the coordinator uses session-scoped reflection.
 
 ### Phase 7 — Convergence and autonomy
 
-**Coordinator implemented; live autonomy still unfinished.** `Coordinator.run_once()`
-claims one issue, loads configuration, invokes an injected async runner, records
-observations/results, applies successful code proposals through the gatekeeper,
-reflects, reloads configuration, and closes the session/issue. Failed executions
-never apply code proposals. Exceptions mark the attempt FAILED; cancellation
-retains the RUNNING claim for reconciliation.
+- [x] Implement `Coordinator.run_once()`: claim an issue, load configuration,
+  invoke an injected runner, record evidence, apply successful proposals through
+  the gatekeeper, reflect, reload, and finish the session/issue.
+- [x] Prevent failed executions from applying code proposals.
+- [x] Mark ordinary exceptions FAILED and retain RUNNING claims on cancellation.
+- [x] Test the flow using a deterministic runner, real temporary SQLite, and real
+  temporary Git, including failure and missing-gatekeeper behavior.
+- [ ] Connect the live runner and model configuration (Phase 8).
+- [ ] Add durable scheduling and production recovery (Phases 11 and 14).
+- [ ] Connect human controls and demonstrate a live browser-operated workflow (Phase 13).
 
-Verification: `tests/test_coordinator.py` exercises the entire flow with a
-deterministic runner, a real temporary SQLite database, and a real temporary Git
-repository. It also tests failure, cancellation, and missing-gatekeeper behavior.
+Evidence: `tests/test_coordinator.py`. The coordinator is a library, not an
+automatically started daemon; local tests do not establish live autonomy.
 
-Still needed: production runner/model configuration, pi RPC adapter, durable
-scheduling, production recovery adapters, human controls, and a live zero-terminal end-to-end run.
-The coordinator is a library boundary, not an automatically started daemon.
+### Phase 8 — Live agent client
+
+- [ ] Inspect automonisaur for reusable agent/protocol functionality and record the choice.
+- [ ] Add a config class for the pi executable, model/provider selection, timeouts,
+  and environment-based credentials.
+- [ ] Build a client for the actual `pi --mode rpc` protocol.
+- [ ] Connect the client to the coordinator's runner interface.
+- [ ] Map protocol events to session-linked signals.
+- [ ] Validate structured results and file proposals before returning them to the coordinator.
+- [ ] Test malformed output, disconnects, and agent failure without inventing success.
+- [ ] Process one issue with a live agent and retain its events and final result.
+- [ ] Measure and record live event latency.
+
+Container execution follows in Phase 9; verified code promotion requires Phase 10.
+
+### Phase 9 — Agent container and execution lifecycle
+
+Depends on Phase 8.
+
+- [ ] Build an agent image containing pi and its runtime dependencies.
+- [ ] Connect bidirectional RPC through the Docker client.
+- [ ] Pass only required credentials from environment variables.
+- [ ] Keep the Docker socket and parent checkout write access out of child containers.
+- [ ] Bound captured and streamed output and enforce execution timeouts.
+- [ ] Confirm child termination on cancellation.
+- [ ] Test success, failure, timeout, cancellation, and failed cleanup; block work
+  for recovery when termination is uncertain.
+- [ ] Run one submitted issue in a real container with session-linked events and
+  a final result, without code promotion.
+
+### Phase 10 — Verify proposed code before applying it
+
+Depends on Phases 8–9.
+
+- [ ] Apply proposals to isolated checkouts of their recorded base revisions.
+- [ ] Run host-selected checks in a sandbox.
+- [ ] Store content hashes, base revision, check results, and session linkage.
+- [ ] Allow only the exact verified proposal through the gatekeeper; reverify
+  when the base revision or proposal changes.
+- [ ] Demonstrate a passing proposal producing a commit with linked evidence.
+- [ ] Verify that failing checks, timeouts, and stale or altered proposals leave
+  the parent checkout unchanged.
+- [ ] Verify that check execution cannot write to the parent checkout or bypass
+  the gatekeeper.
+
+An agent's success flag alone does not establish that its source changes work.
+
+### Phase 11 — Continuous task processing
+
+Depends on Phases 8–10 and Phase 14's execution-stop/recovery support.
+
+- [ ] Add a durable scheduler around the coordinator.
+- [ ] Process queued issues sequentially and prevent competing schedulers from
+  overlapping model execution.
+- [ ] Support pause/resume and orderly shutdown.
+- [ ] Preserve attempts across restarts and block unresolved sessions/proposals.
+- [ ] Route explicit retries through existing recovery rules.
+- [ ] Test restart during execution and Git proposal handling without silently
+  duplicating work.
+- [ ] Verify pause, shutdown, reconciliation, and retry with retained audit history.
+
+### Phase 12 — Reflection with measurable results
+
+Depends on Phases 8–10.
+
+- [ ] Connect a real analysis client using exact-session evidence.
+- [ ] Validate strategy proposals and version configuration updates.
+- [ ] Handle invalid updates without silently losing later records.
+- [ ] Define an evaluation task set, baseline, success metric, and regression
+  threshold before automatically adopting changes.
+- [ ] Evaluate strategy quality and drift using recorded outcomes.
+- [ ] Restore the previous configuration when a change fails evaluation.
+- [ ] Demonstrate a live, traceable analysis update and repeatable comparison
+  reporting improvement, regression, or no change.
+- [ ] Test rejection and rollback of harmful or invalid updates.
+
+Persisting a configuration update alone does not establish improvement.
+
+### Phase 13 — Web interface and human controls
+
+Uses Phases 11–12 and Phase 14's authentication support.
+
+- [ ] Build task submission, chat/report forms, priority, and explicit task selection.
+- [ ] Display live progress, audit history, and reasons work is blocked.
+- [ ] Display proposed changes, verification results, and resulting commits.
+- [ ] Connect pause/resume, recovery, and retry controls to the backend.
+- [ ] Display strategy updates and their evaluation results.
+- [ ] Enforce backend authorization for browser actions and direct API requests.
+- [ ] Demonstrate an authorized user submitting/selecting a task, observing a live
+  run, inspecting its result, and recovering an interrupted attempt through the
+  browser without terminal commands after setup.
+
+### Phase 14 — Authentication, recovery, and backup/restore
+
+Build required pieces alongside Phases 9–13, before unattended deployment.
+
+- [ ] Implement production operator authentication and authorization.
+- [ ] Implement a host verifier confirming both parent execution and child
+  containers have stopped.
+- [ ] Connect the verifier and authorization to the existing recovery service.
+- [ ] Reject unauthorized mutations and prevent recovery when worker state is uncertain.
+- [ ] Demonstrate authorized reconciliation of an interrupted attempt with an audit trail.
+- [ ] Document deployment configuration.
+- [ ] Implement backup/restore for SQLite and Git revisions referenced by audit records.
+- [ ] Restore into a separate environment and verify issues, sessions, strategy
+  versions, and referenced commits.
 
 ## Verification and next work
 
@@ -209,9 +309,10 @@ bash build.sh
 Tests use temporary state and mock Docker execution. Build and HTTP smoke checks
 are separate. No result in this document establishes live model performance.
 
-Next work should implement the pi adapter against its real protocol, wire the
-execution-stop verifier and operator authentication, then connect human controls
-and durable scheduling. Preserve
-the gatekeeper boundary throughout. Detailed contracts and setup live in
+Start with Phase 8's live agent client, then Phase 9's container milestone and
+Phase 10's verified proposals. Build Phase 14's recovery and authentication
+support before enabling unattended scheduling or browser operations that need
+it. Continue with scheduling, evaluated reflection, and the web interface.
+Preserve the gatekeeper boundary throughout. Detailed contracts and setup live in
 `docs/signaling_schema.md`, `docs/signaling_flow_map.md`, and `docs/runtime_guide.md`.
 See `docs/recovery.md` for the recovery service contract and API workflow.
