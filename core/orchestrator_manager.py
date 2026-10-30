@@ -1,11 +1,11 @@
 """Bounded, synchronous Docker lifecycle management for the parent host."""
 from dataclasses import dataclass, field
-import os
 import subprocess
 import time
 import uuid
 
 from core.orch_config import SandboxConfig
+from core.config import DockerConfig
 
 
 @dataclass
@@ -21,20 +21,19 @@ class ChildTaskStatus:
     cleanup_required: bool = False
 
 
-class DockerOrchestrationEngine:
-    def __init__(self, timeout=600, docker_socket=None):
-        if timeout <= 0:
-            raise ValueError("timeout must be positive")
-        self.timeout = timeout
+class DockerClient:
+    def __init__(self, timeout=None, docker_socket=None, *, config=None):
+        if config is not None and (timeout is not None or docker_socket is not None):
+            raise ValueError("Pass Docker options or config, not both")
+        self.config = config if config is not None else DockerConfig(timeout, docker_socket)
+        self.timeout = self.config.timeout
         self._active_containers = {}
-        self.env = os.environ.copy()
-        if docker_socket:
-            self.env["DOCKER_HOST"] = f"unix://{docker_socket}"
+        self.env = self.config.environment()
 
     def _remove(self, status):
         try:
             result = subprocess.run(["docker", "rm", "-f", status.container_id],
-                                    capture_output=True, text=True, timeout=10, env=self.env)
+                                    capture_output=True, text=True, timeout=self.config.cleanup_timeout, env=self.env)
             status.cleanup_required = result.returncode != 0 and "No such container" not in result.stderr
             if status.cleanup_required:
                 status.error += f"; cleanup failed: {result.stderr.strip()}"
@@ -84,3 +83,7 @@ class DockerOrchestrationEngine:
                 self._remove(status)
         self._active_containers = {key: value for key, value in self._active_containers.items()
                                    if value.status == "RUNNING" or value.cleanup_required}
+
+
+# Compatibility name for existing integrations.
+DockerOrchestrationEngine = DockerClient

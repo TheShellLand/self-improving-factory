@@ -4,20 +4,26 @@ import hashlib
 import re
 from pathlib import Path
 import git
+from core.config import GitConfig
 
 logger = logging.getLogger(__name__)
 
 
-class GatekeeperVault:
+class GitClient:
     """Commit validated file replacements in a clean, exclusively owned checkout.
 
     This is not a sandbox for executing untrusted code. Callers must serialize
     access to the repository while a proposal is being applied.
     """
 
-    def __init__(self, repo_path: str, *, create: bool = False):
-        self.root = Path(repo_path).resolve()
-        self.repo = (git.Repo.init(self.root, initial_branch="main") if create
+    def __init__(self, repo_path=None, *, create=False, config=None):
+        if config is not None and (repo_path is not None or create):
+            raise ValueError("Pass Git options or config, not both")
+        if config is None and repo_path is None:
+            raise ValueError("A repository path is required")
+        self.config = config if config is not None else GitConfig(repo_path, create)
+        self.root = self.config.repo_path
+        self.repo = (git.Repo.init(self.root, initial_branch="main") if self.config.create
                      else git.Repo(self.root, search_parent_directories=False))
         if self.repo.bare:
             raise ValueError("A working tree is required")
@@ -161,3 +167,7 @@ class GatekeeperVault:
                 raise ValueError("Committed file mode differs from the proposal")
             if hashlib.sha256(blob.data_stream.read()).hexdigest() != digest:
                 raise ValueError("Committed content differs from the proposal")
+
+
+# Compatibility name for existing integrations.
+GatekeeperVault = GitClient

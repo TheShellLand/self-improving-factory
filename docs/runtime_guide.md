@@ -10,6 +10,10 @@ using PyCharm must follow the python-tools skill to select its configured SDK.
 
 `SIF_DB_PATH` selects the SQLite database; the default is the project-root
 `history_vault.db`. The application does not automatically load `.env` files.
+Configuration classes read defaults at construction. `SIF_API_HOST` and
+`SIF_API_PORT` configure the server; `SIF_TASK_TIMEOUT`, `SIF_CLEANUP_TIMEOUT`,
+and `SIF_POLL_INTERVAL` configure execution, cleanup, and configuration polling
+in seconds. See `.env-example` and [reuse conventions](automonisaur.md).
 `python -m scripts.init_vault` creates missing tables without resetting records.
 Initialization upgrades the original issue-status constraint and adds audit/link
 tables without removing existing records. Other incompatible schemas require an
@@ -49,7 +53,7 @@ PYTHONPATH=. python -m scripts.test_vault_write
 Tests use disposable state and mock Docker execution. The coordinator integration
 test uses a deterministic runner, real temporary Git, and real temporary SQLite.
 It does not prove the live autonomous loop is operational. Production runner and
-reflection adapters, continuous scheduling, and recovery remain acceptance gaps.
+reflection adapters, continuous scheduling, and production recovery are unfinished.
 
 ## Planned signal contract
 

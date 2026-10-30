@@ -5,19 +5,20 @@ must be reconciled against Git before retrying the operation.
 """
 from uuid import uuid4
 import json
-from core.database import connect
+from core.database import DatabaseClient
 from core.signals import SignalPulse
 from core.vault import Vault
 
 
 class CommitService:
     def __init__(self, database_path, gatekeeper):
-        self.db_path = database_path
+        self.database = DatabaseClient(database_path)
+        self.db_path = self.database.config.database_path
         self.gatekeeper = gatekeeper
 
     def apply(self, session_id, message, file_changes):
         proposal_id = str(uuid4())
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             if not connection.execute(
                     "SELECT 1 FROM agent_sessions WHERE session_id = ? AND status = 'RUNNING'",
@@ -39,7 +40,7 @@ class CommitService:
             # Recovery itself may have failed; preserve PREPARED for inspection.
             raise RuntimeError(f"Inspect unresolved proposal {proposal_id}") from error
         sha = self.gatekeeper.get_last_commit() if applied else None
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute("UPDATE commit_proposals SET status = ?, commit_sha = ?, error = ? "
                                "WHERE proposal_id = ?",
                                ("APPLIED" if applied else "FAILED", sha,

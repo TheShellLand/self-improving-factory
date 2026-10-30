@@ -7,19 +7,20 @@ fail closed. Operator identity must come from the host's authentication boundary
 import json
 import time
 
-from core.database import connect
+from core.database import DatabaseClient
 from core.signals import SignalPulse
 from core.vault import Vault
 
 
 class RecoveryService:
     def __init__(self, database_path, *, execution_stopped=None, gatekeeper=None):
-        self.db_path = database_path
+        self.database = DatabaseClient(database_path)
+        self.db_path = self.database.config.database_path
         self.execution_stopped = execution_stopped
         self.gatekeeper = gatekeeper
 
     def pending(self):
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             return {
                 "sessions": [dict(row) for row in connection.execute(
                     "SELECT * FROM agent_sessions WHERE status = 'RUNNING' ORDER BY start_time")],
@@ -43,7 +44,7 @@ class RecoveryService:
         """Resolve PREPARED only with saved evidence and a matching clean Git state."""
         if self.gatekeeper is None:
             raise RuntimeError("Recovery requires a configured gatekeeper")
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute("SELECT * FROM commit_proposals WHERE proposal_id = ? AND status = 'PREPARED'",
                                      (proposal_id,)).fetchone()
@@ -63,7 +64,7 @@ class RecoveryService:
 
     def fail_session(self, session_id, *, actor, reason):
         """Release a stopped session, keeping its issue FAILED until explicitly retried."""
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
                 "SELECT s.status, r.issue_id FROM agent_sessions s JOIN issue_runs r USING(session_id) "
@@ -81,7 +82,7 @@ class RecoveryService:
 
     def retry_issue(self, issue_id, *, actor, reason):
         """Requeue a failed issue only when none of its attempts applied source changes."""
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             issue = connection.execute("SELECT status FROM issues WHERE issue_id = ?", (issue_id,)).fetchone()
             if issue is None or issue["status"] != "FAILED":

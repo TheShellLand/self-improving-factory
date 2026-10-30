@@ -3,17 +3,20 @@ import json
 import logging
 import threading
 from copy import deepcopy
-from core.database import connect
+from core.database import DatabaseClient
+from core.config import HotLoaderConfig
 
 logger = logging.getLogger(__name__)
 
 
 class HotLoaderModule:
-    def __init__(self, database_path, poll_interval=5):
-        if poll_interval <= 0:
-            raise ValueError("poll_interval must be positive")
-        self.db_path = database_path
-        self.poll_interval = poll_interval
+    def __init__(self, database_path, poll_interval=None, *, config=None):
+        if config is not None and poll_interval is not None:
+            raise ValueError("Pass a poll interval or config, not both")
+        self.config = config if config is not None else HotLoaderConfig(poll_interval)
+        self.database = DatabaseClient(database_path)
+        self.db_path = self.database.config.database_path
+        self.poll_interval = self.config.poll_interval
         self._active_config = {}
         self._last_update_id = 0
         self._stop_event = threading.Event()
@@ -22,7 +25,7 @@ class HotLoaderModule:
         return deepcopy(self._active_config)
 
     def _fetch_pending_updates(self):
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             return [dict(row) for row in connection.execute(
                 "SELECT * FROM knowledge_updates WHERE update_id > ? ORDER BY update_id",
                 (self._last_update_id,))]

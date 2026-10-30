@@ -1,5 +1,6 @@
 """Docker command construction shared by sandbox callers."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from automon.helpers.osWrapper import environ
 import shlex
 from core.signals import Viewport
 
@@ -7,7 +8,7 @@ from core.signals import Viewport
 @dataclass
 class SandboxConfig:
     container_name: str
-    image_name: str = "sif_runtime"
+    image_name: str = field(default_factory=lambda: environ("SIF_IMAGE", "sif_runtime"))
     gpu_alloc: int = 0
     viewport: tuple[int, int] = (1920, 1080)
 

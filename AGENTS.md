@@ -2,6 +2,13 @@
 
 read PROJECT.md when it's time to work.
 
+## Code conventions
+
+Before creating code, inspect automonisaur for reusable functions and classes.
+Follow [the reuse decisions and conventions](docs/automonisaur.md): prefer classes,
+keep settings in config classes, and connections in client classes. Credentials
+must be retrieved from environment variables inside config classes.
+
 ## Git Configuration Check
 
 Before starting any tasks involving git operations (like pulling from `<skills-directory>`), ensure the local git

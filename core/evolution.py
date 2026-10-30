@@ -2,14 +2,15 @@
 import json
 import time
 from core.critic import CriticModule
-from core.database import connect
+from core.database import DatabaseClient
 from core.signals import SignalPulse
 from core.vault import Vault
 
 
 class EvolutionEngine:
     def __init__(self, database_path, reflection_provider=None):
-        self.db_path = database_path
+        self.database = DatabaseClient(database_path)
+        self.db_path = self.database.config.database_path
         self.reflection_provider = reflection_provider
 
     async def run_reflection_cycle(self):
@@ -41,7 +42,7 @@ class EvolutionEngine:
         """Persist at most one provider update for a completed execution attempt."""
         if self.reflection_provider is None:
             raise RuntimeError("Configure a reflection provider before running a cycle")
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             existing = connection.execute(
                 "SELECT version_number FROM reflection_sources WHERE source_id = ?", (session_id,)).fetchone()
         if existing:
@@ -58,7 +59,7 @@ class EvolutionEngine:
         if not isinstance(weights, dict):
             raise ValueError("Prompt weights must be a JSON object")
         encoded = json.dumps(weights, allow_nan=False)
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             if source_id is not None:
                 existing = connection.execute(

@@ -3,13 +3,14 @@ import json
 import time
 from uuid import uuid4
 
-from core.database import connect
+from core.database import DatabaseClient
 from core.signals import SignalPulse
 
 
 class Vault:
     def __init__(self, database_path):
-        self.db_path = database_path
+        self.database = DatabaseClient(database_path)
+        self.db_path = self.database.config.database_path
 
     @staticmethod
     def _record(connection, pulse):
@@ -23,14 +24,14 @@ class Vault:
              json.dumps(pulse.payload, allow_nan=False), json.dumps(metadata, allow_nan=False)))
 
     def record(self, pulse):
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             self._record(connection, pulse)
 
     def create_issue(self, report):
         issue_id = str(uuid4())
         pulse = SignalPulse(source_agent="bridge", payload={"issue_id": issue_id, **report},
                             viewport=report.get("client_viewport") or {})
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute(
                 "INSERT INTO issues VALUES (?, ?, ?, 'OPEN', ?, ?)",
                 (issue_id, report["title"], json.dumps(report, allow_nan=False),
@@ -39,14 +40,14 @@ class Vault:
         return issue_id
 
     def list_issues(self):
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             return [dict(row) for row in connection.execute(
                 "SELECT * FROM issues ORDER BY priority_score DESC, issue_id LIMIT 100")]
 
     def vote(self, issue_id, delta):
         if delta not in (-1, 1):
             raise ValueError("Votes must be +1 or -1")
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             cursor = connection.execute(
                 "UPDATE issues SET priority_score = priority_score + ? "
                 "WHERE issue_id = ? AND status IN ('OPEN', 'WAITING')", (delta, issue_id))
@@ -57,7 +58,7 @@ class Vault:
 
     def claim_next(self):
         """Claim one issue across all workers; leave interrupted runs visible."""
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             if connection.execute("SELECT 1 FROM agent_sessions WHERE status = 'RUNNING'").fetchone():
                 return None
@@ -79,7 +80,7 @@ class Vault:
             return dict(row), session_id
 
     def finish(self, session_id, success, summary):
-        with connect(self.db_path) as connection:
+        with self.database.connect() as connection:
             cursor = connection.execute(
                 "UPDATE agent_sessions SET status = ?, end_time = ?, success = ?, execution_summary = ? "
                 "WHERE session_id = ? AND status = 'RUNNING'",

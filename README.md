@@ -46,6 +46,9 @@ data volume to retain your database; `sif-data` above is the name for a new setu
 
 ## Components
 
+- Follow the [automonisaur reuse and Config/Client conventions](docs/automonisaur.md)
+  when adding code. Automonisaur is a runtime dependency from its default branch; its standard
+  installation includes a large collection of integration dependencies.
 - `core/database.py` owns schema upgrades and connection lifetimes; `core/vault.py`
   owns transactional signals, issue claims, votes, and session outcomes.
 - `ui_backend/bridge.py` exposes issue creation/listing, votes, sessions, and audit reads.
@@ -71,7 +74,7 @@ The continuous scheduler, pi RPC adapter, production recovery adapters,
 experience-drift analysis, and frontend
 are unfinished. The image runs the API and includes Python dependencies and Git;
 it does not include a `pi` agent or Docker CLI. `PROJECT.md` distinguishes verified
-phase refactors from remaining product acceptance requirements.
+phase refactors from features that still need to be built or tested.
 
 ## Verification and contributions
 

@@ -10,6 +10,16 @@ every change. Terminal commands remain appropriate for development and setup.
 
 ## Architectural decisions
 
+- **Reuse automonisaur first:** inspect its existing functions and classes before
+  adding an implementation. Import suitable functionality directly. When an
+  existing helper cannot preserve SIF's behavior, document the reason for a local
+  implementation. Prefer objects, separate configuration into `*Config` classes,
+  and put connections to external systems in `*Client` classes.
+- **Environment credentials:** tokens, keys, secrets, and passwords must come
+  from environment variables, never source-code defaults. Config classes own
+  retrieval. Preserve secret values exactly; use `os.getenv` for credentials
+  rather than helpers that trim strings or coerce booleans. No credential-backed
+  model client is implemented yet.
 - **Distributed sandboxes:** a parent host manages sibling Docker containers.
   Only the parent needs Docker daemon access; child runners do not receive its
   socket or write access to the parent checkout.
@@ -28,10 +38,29 @@ every change. Terminal commands remain appropriate for development and setup.
 
 ## How to read progress
 
-The old blanket “complete” claims have been replaced with verified capabilities
-and explicit acceptance gaps. A phase's refactor can be verified while its full
-product acceptance remains open. Tests using injected providers establish local
-behavior, not live agent or production reliability.
+Each phase lists what works and what still needs to be built or tested.
+Passing local tests does not mean that a phase works with a live agent.
+Tests using injected providers check local behavior, not live model performance.
+
+## Automonisaur refactor
+
+The first refactor introduces `DatabaseConfig`, `DockerConfig`, `GitConfig`,
+`ApiConfig`, and `HotLoaderConfig`, alongside the existing `SandboxConfig`.
+`DatabaseClient` owns SQLite connections and migrations; all database services
+use it. `DockerClient` owns container execution and cleanup. `GitClient` owns
+the existing gatekeeper behavior. `ApiApplication`, `ApiServer`, and
+`VaultInitializer` own application setup and lifecycle.
+
+Environment defaults reuse automonisaur's `environ` helper. The dependency follows
+upstream's default branch. The inspected and tested revision was
+`1a300fd962f0dd9a81ac04f2f02b530e6cdc10bb`. That revision has no
+SQLite, Docker, or Git client. Its subprocess `Run` helper calls `communicate()`
+without a timeout, so the Docker client retains bounded subprocess handling.
+See `docs/automonisaur.md` for the reuse decisions and development rules.
+
+Existing names `GatekeeperVault` and `DockerOrchestrationEngine`, plus database
+and application factory functions, remain compatibility entry points.
+This refactor does not implement the unfinished live-agent features below.
 
 ### Phase 0 — Project setup and specification
 
@@ -52,7 +81,7 @@ optional visual state. The observer validates telemetry and can persist it.
 Verification: `tests/test_signaling_contract.py`, `tests/test_vault.py`, and
 `tests/test_executor.py`.
 
-Acceptance gap: map actual pi RPC events to this contract and measure latency.
+Still needed: map actual pi RPC events to this contract and measure latency.
 The previous sub-50 ms acknowledgment claim was never established by these tests.
 
 ### Phase 2 — Vault and issue lifecycle
@@ -74,7 +103,7 @@ records, transactional rollback, concurrent claims, and terminal transitions.
 Recovery verification: `tests/test_recovery.py` covers stopped-worker checks,
 audit rollback, explicit retries, and schema-v1 upgrades to evidence storage.
 
-Acceptance gaps: operational backup/restore and a production execution-stop
+Still needed: operational backup/restore and a production execution-stop
 verifier. The migration supports the repository's original schema, not arbitrary
 external schema variants. Initialization does not change the checked-in DB until
 explicitly invoked or the API is started against it.
@@ -89,7 +118,7 @@ Verification: `tests/test_orchestration.py` covers success, failure, missing Doc
 and timeout cleanup; `tests/test_executor.py` checks dispatch and argument handling.
 Docker image/API smoke tests exercise the built runtime separately.
 
-Acceptance gaps: agent image containing pi, bidirectional RPC, streaming output
+Still needed: agent image containing pi, bidirectional RPC, streaming output
 with bounds, and cancellation that confirms child termination. The current image
 contains the API runtime, Python, Git, and Bash; it has no pi or Docker CLI.
 
@@ -115,7 +144,7 @@ commit-to-session linkage.
 Verification also includes crash injection before and after Git writes,
 content mismatch rejection, and no-op reconciliation in `tests/test_recovery.py`.
 
-Acceptance gaps: production operator authentication/execution-stop adapters and
+Still needed: production operator authentication/execution-stop adapters and
 isolation against concurrent filesystem writers. The gatekeeper is not an OS
 security sandbox. Recovery requires exclusive access to the checkout.
 
@@ -131,7 +160,7 @@ service and an operator authorization callback; no user-supplied actor is truste
 Verification: `tests/test_ui_bridge.py` covers persistence, validation, ordering,
 votes, and recorded input signals. FastAPI exposes the interface at `/docs`.
 
-Acceptance gaps: the browser dashboard/chat/report form, authentication and
+Still needed: the browser dashboard/chat/report form, authentication and
 deployment policy, explicit human selection controls, and a recovery UI.
 The empty frontend files are not a completed UI.
 
@@ -145,14 +174,14 @@ updates by insertion ID, so equal timestamps do not skip records.
 Verification: `tests/test_convergence.py` and `tests/test_coordinator.py` cover
 persistence, deduplication, exact session matching, and configuration loading.
 
-Acceptance gaps: a real analysis provider, drift evaluation, strategy quality
+Still needed: a real analysis provider, drift evaluation, strategy quality
 measurement, and handling invalid legacy updates. An invalid update stops the
 loader at that record until corrected. The legacy batch reflection API leaves
 deduplication to its caller; the coordinator uses session-scoped reflection.
 
 ### Phase 7 — Convergence and autonomy
 
-**Coordinator implemented; autonomy acceptance pending.** `Coordinator.run_once()`
+**Coordinator implemented; live autonomy still unfinished.** `Coordinator.run_once()`
 claims one issue, loads configuration, invokes an injected async runner, records
 observations/results, applies successful code proposals through the gatekeeper,
 reflects, reloads configuration, and closes the session/issue. Failed executions
@@ -163,7 +192,7 @@ Verification: `tests/test_coordinator.py` exercises the entire flow with a
 deterministic runner, a real temporary SQLite database, and a real temporary Git
 repository. It also tests failure, cancellation, and missing-gatekeeper behavior.
 
-Acceptance gaps: production runner/model configuration, pi RPC adapter, durable
+Still needed: production runner/model configuration, pi RPC adapter, durable
 scheduling, production recovery adapters, human controls, and a live zero-terminal end-to-end run.
 The coordinator is a library boundary, not an automatically started daemon.
 
