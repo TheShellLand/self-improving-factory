@@ -22,7 +22,7 @@ explicit migration.
 ## Docker lifecycle
 
 See [deployment configuration](deployment.md) for persistence, environment
-settings, replacement procedures, and the current API startup blocker.
+settings, replacement procedures, and startup configuration.
 
 With Docker Engine 26+ running:
 
@@ -42,7 +42,8 @@ docker run --rm -p 8000:8000 -e SIF_DB_PATH=/data/history_vault.db \
 The image includes Python, Git, Bash, and the application dependencies. Its
 default command starts the API. A host orchestrator needs Docker CLI access and
 access to the Docker daemon; child containers do not receive the Docker socket.
-The `pi` executable and RPC integration are not bundled or implemented yet.
+The image does not bundle pi. A host RPC client is available; see
+[pi client](pi_client.md). Docker RPC integration remains unfinished.
 
 ## Verification
 

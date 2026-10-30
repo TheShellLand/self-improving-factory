@@ -191,19 +191,23 @@ automatically started daemon; local tests do not establish live autonomy.
 
 ### Phase 8 — Live agent client
 
-- [ ] Inspect automonisaur for reusable agent/protocol functionality and record the choice.
+- [x] Inspect automonisaur for reusable agent/protocol functionality and record the choice.
 - [ ] Add a config class for the pi executable, model/provider selection, timeouts,
   and environment-based credentials.
-- [ ] Build a client for the actual `pi --mode rpc` protocol.
+- [x] Build a client for the actual `pi --mode rpc` protocol.
 - [ ] Connect the client to the coordinator's runner interface.
 - [ ] Map protocol events to session-linked signals.
 - [ ] Validate structured results and file proposals before returning them to the coordinator.
-- [ ] Test malformed output, disconnects, and agent failure without inventing success.
+- [x] Test malformed output, disconnects, and agent failure without inventing success.
 - [ ] Process one issue with a live agent and retain its events and final result.
 - [ ] Ensure agent loops continuously until `/goal` state requirements are met before declaring a multi-step goal completed.
 - [ ] Measure and record live event latency.
 
 Container execution follows in Phase 9; verified code promotion requires Phase 10.
+
+Client evidence: `tests/test_pi_client.py` and a successful real pi 1.4.0
+`get_state` check through `scripts/check_pi.py`. See `docs/pi_client.md` for the
+supported operations and remaining integration limits.
 
 ### Phase 9 — Agent container and execution lifecycle
 

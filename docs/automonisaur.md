@@ -8,6 +8,11 @@ future installations may fetch newer code.
 
 ## Reuse decisions
 
+For the pi client, the inspected automonisaur revision has no pi RPC transport.
+Its `subprocessWrapper.Run` uses blocking `communicate()` without bidirectional
+JSONL dispatch or a deadline. `PiClient` therefore uses asyncio subprocess pipes
+while reusing the existing config/environment convention.
+
 | Need | Upstream reviewed | Current choice |
 | --- | --- | --- |
 | Environment settings | `automon.helpers.osWrapper.environ` | Import directly in config classes |

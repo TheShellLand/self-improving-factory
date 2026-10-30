@@ -4,13 +4,10 @@ This guide covers the API service. It does not start a model worker, scheduler,
 or browser dashboard. See [runtime verification](runtime_guide.md) and
 [recovery operations](recovery.md) for component contracts.
 
-## Current startup blocker
+## Startup configuration
 
-At this documentation review, `scripts/main.py` imports `ApiConfig`, but
-`core/config.py` does not define it. A fresh image of this checkout therefore
-cannot start its default API command. Restore and verify that configuration
-contract before using the deployment procedure below. An older image starting
-successfully is not verification of the current checkout.
+`ApiConfig` has been restored and the regression suite passes. Rebuild the image
+from this checkout before deploying; an older image does not include the fix.
 
 ## Configuration
 
@@ -22,8 +19,8 @@ reference, not a file that is loaded automatically.
 | --- | --- | --- |
 | `SIF_DB_PATH` | SQLite file location | Repository-root `history_vault.db`; use `/data/history_vault.db` with the volume below |
 | `SIF_IMAGE` | Image tag used by build/run helpers | `sif_runtime`; does not select the image in a literal `docker run` command |
-| `SIF_API_HOST` | Intended API listen address | `.env-example` specifies `0.0.0.0`; requires restoring `ApiConfig` |
-| `SIF_API_PORT` | Intended API listen port | `.env-example` specifies `8000`; requires restoring `ApiConfig` |
+| `SIF_API_HOST` | Intended API listen address | `.env-example` specifies `0.0.0.0`; configured by `ApiConfig` |
+| `SIF_API_PORT` | Intended API listen port | `.env-example` specifies `8000`; configured by `ApiConfig` |
 | `SIF_TASK_TIMEOUT` | Docker execution timeout, seconds | `600`; finite and positive |
 | `SIF_CLEANUP_TIMEOUT` | Docker cleanup timeout, seconds | `10`; finite and positive |
 | `SIF_POLL_INTERVAL` | Configuration loader interval, seconds | `5`; finite and positive |
@@ -33,7 +30,7 @@ The execution and polling settings do not start workers. The API container needs
 neither the Docker socket nor a writable mount of this repository. Model-client
 configuration is under development and is not part of this API procedure.
 
-## Deployment procedure after the startup blocker is fixed
+## Deployment procedure
 
 Run from the repository root with Docker running. Use the documented build helper:
 
