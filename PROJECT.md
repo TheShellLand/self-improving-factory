@@ -197,7 +197,7 @@ automatically started daemon; local tests do not establish live autonomy.
 - [x] Build a client for the actual `pi --mode rpc` protocol.
 - [ ] Connect the client to the coordinator's runner interface.
 - [ ] Map protocol events to session-linked signals.
-- [ ] Validate structured results and file proposals before returning them to the coordinator.
+- [x] Validate structured results and file proposals before returning them to the coordinator.
 - [x] Test malformed output, disconnects, and agent failure without inventing success.
 - [ ] Process one issue with a live agent and retain its events and final result.
 - [ ] Ensure agent loops continuously until `/goal` state requirements are met before declaring a multi-step goal completed.
@@ -208,6 +208,11 @@ Container execution follows in Phase 9; verified code promotion requires Phase 1
 Client evidence: `tests/test_pi_client.py` and a successful real pi 1.4.0
 `get_state` check through `scripts/check_pi.py`. See `docs/pi_client.md` for the
 supported operations and remaining integration limits.
+
+Structured-result evidence: `tests/test_pi_result.py` verifies strict result
+types, duplicate-key and non-finite-number rejection, proposal consistency, and
+path checks through `PiClient.run_structured()`. The coordinator adapter remains
+a separate task; parsing does not verify code correctness or apply proposals.
 
 ### Phase 9 — Agent container and execution lifecycle
 

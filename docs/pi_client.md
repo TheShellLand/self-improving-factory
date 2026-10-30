@@ -1,5 +1,14 @@
 # pi RPC client
 
+Use `await client.run_structured(prompt)` when the prompt requests one JSON
+object matching `ExecutionOutcome`: boolean `success`, nonempty `summary`, and
+optional `observations`, `file_changes`, and `commit_message`. It returns the
+validated model or raises `PiAgentError`. File proposals require success and a
+nonempty commit message; unsafe, duplicate, and overlapping paths are rejected.
+Prose, code fences, duplicate JSON keys, and non-finite numbers are rejected.
+The gatekeeper still owns filesystem/symlink checks; this parser neither applies
+changes nor establishes their correctness. Coordinator wiring remains unfinished.
+
 `PiClient` implements one operation per fresh pi process using strict JSONL on
 stdin/stdout. It supports `get_state`, `get_available_models`, and `prompt`.
 `run_inference()` returns `{"text": ...}` only after a successful final assistant

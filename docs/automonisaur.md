@@ -23,6 +23,7 @@ while reusing the existing config/environment convention.
 | Model and HTTP integrations | Existing clients include Ollama and Requests | Revisit when implementing a real provider; no unused clients added |
 | Signal identifiers | `uuidWrapper.Uuid.hex` generates UUID1 | Retain random UUID4 identifiers |
 | Signal serialization | `jsonWrapper.Json.dumps_dict` converts values to strings | Retain typed JSON with non-finite numbers rejected |
+| Structured pi results | The same JSON helper offers serialization, not typed validation | Reuse SIF's `ExecutionOutcome` with a strict JSON parser and proposal checks |
 | Audit timestamps | `Dates` returns local datetime/date values | Retain Unix timestamps |
 | Proposal content evidence | `cryptography.hashing.Hashlib` provides MD5 | Retain SHA-256 content hashes |
 

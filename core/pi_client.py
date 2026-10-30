@@ -5,6 +5,7 @@ import tempfile
 from uuid import uuid4
 
 from core.config import PiAgentConfig
+from core.pi_result import PiResultParser
 
 
 class PiAgentError(RuntimeError):
@@ -131,3 +132,11 @@ class PiClient:
     async def run_inference(self, prompt, *, on_event=None):
         """Return final text only after pi settles; never treat acknowledgment as success."""
         return await self.perform_action("prompt", {"message": prompt}, on_event=on_event)
+
+    async def run_structured(self, prompt, *, on_event=None):
+        """Return a validated ExecutionOutcome, never apply its file proposals."""
+        result = await self.run_inference(prompt, on_event=on_event)
+        try:
+            return PiResultParser().parse(result["text"])
+        except (ValueError, TypeError, KeyError, RecursionError) as error:
+            raise PiAgentError("pi returned an invalid structured execution result") from error
