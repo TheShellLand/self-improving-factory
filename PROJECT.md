@@ -200,6 +200,7 @@ automatically started daemon; local tests do not establish live autonomy.
 - [ ] Validate structured results and file proposals before returning them to the coordinator.
 - [ ] Test malformed output, disconnects, and agent failure without inventing success.
 - [ ] Process one issue with a live agent and retain its events and final result.
+- [ ] Ensure agent loops continuously until `/goal` state requirements are met before declaring a multi-step goal completed.
 - [ ] Measure and record live event latency.
 
 Container execution follows in Phase 9; verified code promotion requires Phase 10.
@@ -291,7 +292,9 @@ Build required pieces alongside Phases 9–13, before unattended deployment.
 - [ ] Connect the verifier and authorization to the existing recovery service.
 - [ ] Reject unauthorized mutations and prevent recovery when worker state is uncertain.
 - [ ] Demonstrate authorized reconciliation of an interrupted attempt with an audit trail.
-- [ ] Document deployment configuration.
+- [x] Document current API deployment configuration and startup blockers in
+  `docs/deployment.md`.
+- [ ] Resolve the documented API startup blocker and verify deployment from a fresh image.
 - [ ] Implement backup/restore for SQLite and Git revisions referenced by audit records.
 - [ ] Restore into a separate environment and verify issues, sessions, strategy
   versions, and referenced commits.

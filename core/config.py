@@ -42,13 +42,23 @@ class HotLoaderConfig:
             raise ValueError("poll_interval must be finite and positive")
 
 
-class ApiConfig:
-    def __init__(self, host=None, port=None):
-        self.host = host if host is not None else environ("SIF_API_HOST", "0.0.0.0")
-        self.port = int(port if port is not None else environ("SIF_API_PORT", 8000))
-        if not 1 <= self.port <= 65535:
-            raise ValueError("API port must be between 1 and 65535")
+class PiAgentConfig:
+    def __init__(self, executable=None, model="gpt-4o", provider="openai", timeout=60):
+        # We don't have a spec for the required PI environment variables yet but we should use environ() correctly)
 
+        self.executable = executable or environ("SIF_PI_EXECUTABLE", "pi")
+        self.model = model if model is not None else environ("SIF_MODEL", "gpt-4o")
+        self.provider = provider if provider is not None else environ("SIF_PROVIDER", "openai")
+        self.timeout = float(timeout if timeout is not None else environ("SIF_TIMEOUT", 120))
+
+
+    def environment(self):
+        env = os.environ.copy()
+        # Map our config fields to what 'pi' expects (placeholder mappings for now based on SIF defaults)
+        env["PI_EXECUTABLE"] = self.executable
+        env["PI_MODEL"] = self.model
+        env["PI_PROVIDER"] = self.provider
+        return env
 
 class GitConfig:
     def __init__(self, repo_path, create=False):

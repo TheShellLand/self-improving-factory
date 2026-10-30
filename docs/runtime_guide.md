@@ -21,6 +21,9 @@ explicit migration.
 
 ## Docker lifecycle
 
+See [deployment configuration](deployment.md) for persistence, environment
+settings, replacement procedures, and the current API startup blocker.
+
 With Docker Engine 26+ running:
 
 1. Run `bash build.sh` to build `sif_runtime`.
