@@ -182,7 +182,7 @@ API leaves deduplication to its caller; the coordinator uses session-scoped refl
 - [x] Mark ordinary exceptions FAILED and retain RUNNING claims on cancellation.
 - [x] Test the flow using a deterministic runner, real temporary SQLite, and real
   temporary Git, including failure and missing-gatekeeper behavior.
-- [ ] Connect the live runner and model configuration (Phase 8).
+- [x] Connect the pi runner and model configuration (Phase 8); live issue verification remains below.
 - [ ] Add durable scheduling and production recovery (Phases 11 and 14).
 - [ ] Connect human controls and demonstrate a live browser-operated workflow (Phase 13).
 
@@ -195,7 +195,7 @@ automatically started daemon; local tests do not establish live autonomy.
 - [x] Add a config class for the pi executable, model/provider selection, timeouts,
   and environment-based credentials.
 - [x] Build a client for the actual `pi --mode rpc` protocol.
-- [ ] Connect the client to the coordinator's runner interface.
+- [x] Connect the client to the coordinator's runner interface.
 - [ ] Map protocol events to session-linked signals.
 - [x] Validate structured results and file proposals before returning them to the coordinator.
 - [x] Test malformed output, disconnects, and agent failure without inventing success.
@@ -214,8 +214,13 @@ supported operations and remaining integration limits.
 
 Structured-result evidence: `tests/test_pi_result.py` verifies strict result
 types, duplicate-key and non-finite-number rejection, proposal consistency, and
-path checks through `PiClient.run_structured()`. The coordinator adapter remains
-a separate task; parsing does not verify code correctness or apply proposals.
+path checks through `PiClient.run_structured()`. `PiRunner` connects this result
+to the coordinator; parsing does not verify code correctness or apply proposals.
+
+Runner evidence: `tests/test_pi_runner.py` exercises `PiRunner` through the
+coordinator with temporary SQLite and mocked inference, including invalid output,
+provider failure, cancellation, and the gatekeeper requirement. Live model
+execution and event persistence remain unchecked.
 
 ### Phase 9 — Agent container and execution lifecycle
 

@@ -7,7 +7,7 @@ validated model or raises `PiAgentError`. File proposals require success and a
 nonempty commit message; unsafe, duplicate, and overlapping paths are rejected.
 Prose, code fences, duplicate JSON keys, and non-finite numbers are rejected.
 The gatekeeper still owns filesystem/symlink checks; this parser neither applies
-changes nor establishes their correctness. Coordinator wiring remains unfinished.
+changes nor establishes their correctness. `PiRunner` supplies the coordinator adapter.
 
 `PiClient` implements one operation per fresh pi process using strict JSONL on
 stdin/stdout. It supports `get_state`, `get_available_models`, and `prompt`.
@@ -65,4 +65,16 @@ disconnects, rejected commands, provider error messages, aborted runs, deadlines
 cancellation, and missing executables. A real pi 1.4.0 `get_state` operation
 succeeded in 0.294 seconds including process startup. This is transport timing,
 not live model event latency. A live model issue and coordinator integration
-remain unchecked in PROJECT.md.
+are tracked separately in PROJECT.md.
+
+To connect an existing coordinator, supply `runner=PiRunner(PiClient(config))`,
+importing `PiRunner` from `core.pi_runner` and using a `PiAgentConfig` instance.
+The async callable accepts the claimed issue, session ID, and active strategy
+dictionary. It requests the `ExecutionOutcome` JSON contract and returns the
+client's validated result. Strategy values enter the prompt as typed JSON; they
+do not override executable, credentials, provider, or model settings.
+
+The host still supplies vault, reflection, and hotloader dependencies. Proposals
+still require the coordinator's gatekeeper service. This adapter does not start
+a worker or provide repository context, event persistence, or goal iteration.
+Tests exercise mocked inference with real SQLite; no live model run is claimed.

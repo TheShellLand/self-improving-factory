@@ -25,6 +25,7 @@ while reusing the existing config/environment convention.
 | Signal identifiers | `uuidWrapper.Uuid.hex` generates UUID1 | Retain random UUID4 identifiers |
 | Signal serialization | `jsonWrapper.Json.dumps_dict` converts values to strings | Retain typed JSON with non-finite numbers rejected |
 | Structured pi results | The same JSON helper offers serialization, not typed validation | Reuse SIF's `ExecutionOutcome` with a strict JSON parser and proposal checks |
+| Coordinator prompt context | `Json.dumps_dict` stringifies nested values | `PiRunner` uses standard JSON to preserve issue and strategy types and reuses `PiClient.run_structured` |
 | Audit timestamps | `Dates` returns local datetime/date values | Retain Unix timestamps |
 | Proposal content evidence | `cryptography.hashing.Hashlib` provides MD5 | Retain SHA-256 content hashes |
 
