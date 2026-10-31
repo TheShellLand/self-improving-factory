@@ -52,16 +52,43 @@ class ApiConfig:
 
 class PiAgentConfig:
     def __init__(self, executable=None, model=None, provider=None, timeout=None,
-                 cleanup_timeout=5, max_record_bytes=1048576):
-        self.executable = executable or environ("SIF_PI_EXECUTABLE", "pi")
-        self.model = model if model is not None else environ("SIF_MODEL")
-        self.provider = provider if provider is not None else environ("SIF_PROVIDER")
-        self.timeout = float(timeout if timeout is not None else environ("SIF_TIMEOUT", 120))
-        self.cleanup_timeout = float(cleanup_timeout)
-        self.max_record_bytes = int(max_record_bytes)
-        if any(not math.isfinite(value) or value <= 0
-               for value in (self.timeout, self.cleanup_timeout)) or self.max_record_bytes <= 0:
-            raise ValueError("Timeouts and record limit must be finite and positive")
+                 cleanup_timeout=None, max_record_bytes=None):
+        # Preserve literal strings: environ coerces "true" and strips quotes.
+        self.executable = self._text(executable, "SIF_PI_EXECUTABLE", "pi")
+        self.model = self._text(model, "SIF_MODEL")
+        self.provider = self._text(provider, "SIF_PROVIDER")
+        self.timeout = self._positive(timeout, "SIF_TIMEOUT", 120)
+        self.cleanup_timeout = self._positive(cleanup_timeout, "SIF_PI_CLEANUP_TIMEOUT", 5)
+        limit = max_record_bytes if max_record_bytes is not None else os.getenv(
+            "SIF_PI_MAX_RECORD_BYTES", "1048576")
+        if isinstance(limit, bool) or not isinstance(limit, (str, int)):
+            raise ValueError("SIF_PI_MAX_RECORD_BYTES must be a positive integer")
+        try:
+            self.max_record_bytes = int(limit)
+        except ValueError:
+            raise ValueError("SIF_PI_MAX_RECORD_BYTES must be a positive integer") from None
+        if self.max_record_bytes <= 0:
+            raise ValueError("SIF_PI_MAX_RECORD_BYTES must be a positive integer")
+
+    @staticmethod
+    def _text(value, name, default=None):
+        value = value if value is not None else os.getenv(name, default)
+        if value is not None and (not isinstance(value, str) or not value.strip() or "\0" in value):
+            raise ValueError(f"{name} must be a nonempty string without NUL characters")
+        return value
+
+    @staticmethod
+    def _positive(value, name, default):
+        value = value if value is not None else os.getenv(name, str(default))
+        try:
+            if isinstance(value, bool):
+                raise ValueError
+            result = float(value)
+            if not math.isfinite(result) or result <= 0:
+                raise ValueError
+        except (TypeError, ValueError, OverflowError):
+            raise ValueError(f"{name} must be finite and positive") from None
+        return result
 
     def environment(self):
         # Provider credentials retain their exact environment values. No invented PI_* mappings.

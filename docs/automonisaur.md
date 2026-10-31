@@ -16,6 +16,7 @@ while reusing the existing config/environment convention.
 | Need | Upstream reviewed | Current choice |
 | --- | --- | --- |
 | Environment settings | `automon.helpers.osWrapper.environ` | Import directly in config classes |
+| Pi CLI settings | The environment helper coerces booleans and trims quotes | Use `os.getenv` inside `PiAgentConfig` to preserve literal CLI values and reject invalid settings |
 | Config/client separation | Integration `config.py` and `client.py` classes | Apply to SQLite, Git, Docker, and application setup |
 | SQLite transactions and migrations | No SQLite client in the inspected revision | `DatabaseClient` retains SIF's transaction and migration rules |
 | Docker lifecycle | No Docker client; `subprocessWrapper.Run` has no communicate timeout | `DockerClient` retains argv execution, timeout cleanup, and status tracking |

@@ -192,7 +192,7 @@ automatically started daemon; local tests do not establish live autonomy.
 ### Phase 8 — Live agent client
 
 - [x] Inspect automonisaur for reusable agent/protocol functionality and record the choice.
-- [ ] Add a config class for the pi executable, model/provider selection, timeouts,
+- [x] Add a config class for the pi executable, model/provider selection, timeouts,
   and environment-based credentials.
 - [x] Build a client for the actual `pi --mode rpc` protocol.
 - [ ] Connect the client to the coordinator's runner interface.
@@ -204,6 +204,9 @@ automatically started daemon; local tests do not establish live autonomy.
 - [ ] Measure and record live event latency.
 
 Container execution follows in Phase 9; verified code promotion requires Phase 10.
+
+Configuration evidence: `tests/test_pi_config.py` covers defaults, environment
+settings, explicit overrides, invalid values, and exact credential inheritance.
 
 Client evidence: `tests/test_pi_client.py` and a successful real pi 1.4.0
 `get_state` check through `scripts/check_pi.py`. See `docs/pi_client.md` for the

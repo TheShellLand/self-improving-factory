@@ -28,6 +28,14 @@ from the environment; no invented `PI_MODEL` or `PI_PROVIDER` variables are used
 Pi may also use its own configured authentication. This client does not manage
 pi's stored credentials.
 
+`SIF_PI_CLEANUP_TIMEOUT` defaults to 5 seconds and `SIF_PI_MAX_RECORD_BYTES`
+defaults to 1048576 bytes per stdout record. Explicit constructor options override
+environment settings. Timeouts must be finite and positive; the record limit must
+be a positive integer. Executable, model, and provider values must be nonblank
+strings without NUL characters. Leave optional model/provider variables unset
+to use pi defaults. Configuration does not load `.env` files automatically.
+`tests/test_pi_config.py` verifies these settings and exact credential inheritance.
+
 Tools, extensions, skills, prompt templates, and themes are disabled. Each
 operation uses a temporary working directory and disables session persistence.
 This is a text-only host client, not a security sandbox or Docker runner.
