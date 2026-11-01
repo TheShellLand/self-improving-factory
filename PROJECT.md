@@ -202,11 +202,24 @@ automatically started daemon; local tests do not establish live autonomy.
 - [x] Map protocol events to session-linked signals.
 - [x] Validate structured results and file proposals before returning them to the coordinator.
 - [x] Test malformed output, disconnects, and agent failure without inventing success.
-- [ ] Process one issue with a live agent and retain its events and final result.
+- [x] Process one issue with a live agent and retain its events and final result.
 - [ ] Ensure agent loops continuously until `/goal` state requirements are met before declaring a multi-step goal completed.
 - [ ] Measure and record live event latency.
 
 Container execution follows in Phase 9; verified code promotion requires Phase 10.
+
+Live check attempted 2026-11-01 through `scripts/check_live_pi.py`: pi 1.4.0
+selected `ollama_gpu_1080ti_tailscale` / `local`, but the provider timed out on
+all retries. The failed session and 36 protocol events were retained locally at
+`/tmp/sif-live-check-20261101`.
+
+After reconnecting Tailscale, the same check succeeded on 2026-11-01 using
+`ollama_gpu_1080ti_tailscale` / `local` (Ollama reports `local:latest`, based on
+`gemma4:12b`). Session `414c060a-05d4-4c9e-a026-5081c98d3fa2` completed with
+summary `42`, a CLOSED issue, and 762 retained pi events in
+`/tmp/sif-live-check-20261101-retry/{vault.db,evidence.json}`. Total run time was
+45.265 seconds; this is not a measurement of individual event latency. The
+coordinator used a no-op reflection provider and no code-promotion service.
 
 Configuration evidence: `tests/test_pi_config.py` covers defaults, environment
 settings, explicit overrides, invalid values, and exact credential inheritance.
@@ -222,8 +235,8 @@ to the coordinator; parsing does not verify code correctness or apply proposals.
 
 Runner evidence: `tests/test_pi_runner.py` exercises `PiRunner` through the
 coordinator with temporary SQLite and mocked inference, including invalid output,
-provider failure, cancellation, and the gatekeeper requirement. Live model
-execution remains unchecked. `tests/test_pi_events.py` verifies event persistence
+provider failure, cancellation, and the gatekeeper requirement. The live arithmetic
+check above verifies one model run. `tests/test_pi_events.py` verifies event persistence
 through simulated RPC transport, host-owned session/issue linkage, ordering,
 invalid-event rejection, and cleanup on storage failure. Protocol events remain
 observations even when the final result is invalid.

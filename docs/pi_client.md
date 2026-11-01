@@ -52,6 +52,14 @@ With pi installed on PATH, check transport without making a model request:
 PYTHONPATH=. python -m scripts.check_pi
 ```
 
+For a real model request through the coordinator, run
+`PYTHONPATH=. python -m scripts.check_live_pi /path/to/new-evidence-directory`.
+This asks for 17 + 25, retains a separate `vault.db` and `evidence.json`, and
+requires a completed session with summary `42` and a settlement event. Existing
+directories are rejected. Reflection is explicitly a no-op provider and code
+promotion is not configured. Failures retain evidence and return a nonzero exit.
+Use `SIF_PROVIDER` and `SIF_MODEL` to select a reachable configured provider.
+
 Example inside an async application:
 
 ```python
@@ -78,6 +86,14 @@ The host still supplies vault, reflection, and hotloader dependencies. Proposals
 still require the coordinator's gatekeeper service. This adapter does not start
 a worker or provide repository context or goal iteration.
 Tests exercise mocked inference with real SQLite; no live model run is claimed.
+
+A separate live arithmetic check succeeded on 2026-11-01 through
+`scripts/check_live_pi.py`, pi 1.4.0, and the configured Tailscale Ollama provider
+`ollama_gpu_1080ti_tailscale` with model `local`. The issue closed with summary
+`42`; 762 protocol events and the completed session were retained under
+`/tmp/sif-live-check-20261101-retry`. Total runtime was 45.265 seconds. This
+verifies one host model run, not Docker execution, strategy quality, or goal
+completion. See PROJECT.md for the session ID and the prior connectivity failure.
 
 Use `PiRunner(client, vault=vault)` with the coordinator's vault to persist events.
 Each callback writes a `pi` OBSERVATION with host-owned session and issue IDs,
