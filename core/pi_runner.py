@@ -3,11 +3,13 @@ import json
 
 from core.coordinator import ExecutionOutcome
 from core.pi_client import PiClient
+from core.pi_events import PiEventRecorder
 
 
 class PiRunner:
-    def __init__(self, client=None):
+    def __init__(self, client=None, *, vault=None):
         self.client = client if client is not None else PiClient()
+        self.vault = vault
 
     async def __call__(self, issue, session_id, config):
         context = json.dumps({"issue": issue, "session_id": session_id,
@@ -23,4 +25,6 @@ class PiRunner:
             "true and a nonempty commit_message, with relative paths outside .git. "
             "Proposals are not applied by this runner.\nContext:\n" + context
         )
-        return await self.client.run_structured(prompt)
+        recorder = (PiEventRecorder(self.vault, session_id, issue["issue_id"])
+                    if self.vault is not None else None)
+        return await self.client.run_structured(prompt, on_event=recorder)

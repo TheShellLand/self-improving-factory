@@ -85,7 +85,7 @@ container API smoke check. Keep setup instructions aligned with later changes.
   positive viewport dimensions, and optional visual state.
 - [x] Validate and persist observer telemetry.
 - [x] Delegate executor calls to real execution logic instead of fabricated IDs.
-- [ ] Map actual pi RPC events to session-linked signals (Phase 8).
+- [x] Map pi RPC events to session-linked signals (Phase 8; simulated transport verified).
 - [ ] Measure live event latency (Phase 8); the former sub-50 ms claim is unverified.
 
 Evidence: `tests/test_signaling_contract.py`, `tests/test_vault.py`, and
@@ -196,7 +196,7 @@ automatically started daemon; local tests do not establish live autonomy.
   and environment-based credentials.
 - [x] Build a client for the actual `pi --mode rpc` protocol.
 - [x] Connect the client to the coordinator's runner interface.
-- [ ] Map protocol events to session-linked signals.
+- [x] Map protocol events to session-linked signals.
 - [x] Validate structured results and file proposals before returning them to the coordinator.
 - [x] Test malformed output, disconnects, and agent failure without inventing success.
 - [ ] Process one issue with a live agent and retain its events and final result.
@@ -220,7 +220,10 @@ to the coordinator; parsing does not verify code correctness or apply proposals.
 Runner evidence: `tests/test_pi_runner.py` exercises `PiRunner` through the
 coordinator with temporary SQLite and mocked inference, including invalid output,
 provider failure, cancellation, and the gatekeeper requirement. Live model
-execution and event persistence remain unchecked.
+execution remains unchecked. `tests/test_pi_events.py` verifies event persistence
+through simulated RPC transport, host-owned session/issue linkage, ordering,
+invalid-event rejection, and cleanup on storage failure. Protocol events remain
+observations even when the final result is invalid.
 
 ### Phase 9 — Agent container and execution lifecycle
 

@@ -76,5 +76,18 @@ do not override executable, credentials, provider, or model settings.
 
 The host still supplies vault, reflection, and hotloader dependencies. Proposals
 still require the coordinator's gatekeeper service. This adapter does not start
-a worker or provide repository context, event persistence, or goal iteration.
+a worker or provide repository context or goal iteration.
 Tests exercise mocked inference with real SQLite; no live model run is claimed.
+
+Use `PiRunner(client, vault=vault)` with the coordinator's vault to persist events.
+Each callback writes a `pi` OBSERVATION with host-owned session and issue IDs,
+a per-invocation sequence starting at 1, and the original event nested under
+`event`. Unknown event types are retained. RPC responses are excluded. Neither
+`agent_end` nor `agent_settled` is stored as task success; the coordinator owns
+final RESULT signals. Timestamps represent host receipt, not measured latency.
+
+Writes are synchronous and storage errors abort the operation through normal
+client cleanup. Previously stored events survive later failures. Omitting the
+vault retains the standalone runner behavior without event persistence. Event
+payloads retain model content; they are not redacted. Retention limits and
+production access controls remain deployment work.

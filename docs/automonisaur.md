@@ -24,6 +24,7 @@ while reusing the existing config/environment convention.
 | Model and HTTP integrations | Existing clients include Ollama and Requests | Revisit when implementing a real provider; no unused clients added |
 | Signal identifiers | `uuidWrapper.Uuid.hex` generates UUID1 | Retain random UUID4 identifiers |
 | Signal serialization | `jsonWrapper.Json.dumps_dict` converts values to strings | Retain typed JSON with non-finite numbers rejected |
+| Pi event persistence | The JSON helper loses nested types; no pi adapter exists | Reuse `SignalPulse` and `Vault.record` through `PiEventRecorder` |
 | Structured pi results | The same JSON helper offers serialization, not typed validation | Reuse SIF's `ExecutionOutcome` with a strict JSON parser and proposal checks |
 | Coordinator prompt context | `Json.dumps_dict` stringifies nested values | `PiRunner` uses standard JSON to preserve issue and strategy types and reuses `PiClient.run_structured` |
 | Audit timestamps | `Dates` returns local datetime/date values | Retain Unix timestamps |
