@@ -10,6 +10,7 @@ from core.evaluation import EvaluationConfig
 from core.evaluation_runner import EvaluationRunner
 from core.pi_client import PiAgentError
 from core.config import PiAgentConfig
+from core.evaluation_evidence import EvaluationEvidenceClient
 
 
 class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
@@ -36,6 +37,16 @@ class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
             manifest = json.loads((root / "manifest.json").read_text())
             self.assertEqual(manifest["status"], "COMPLETED")
             self.assertEqual(len(manifest["attempts"]["baseline"]), 30)
+            verifier = EvaluationEvidenceClient()
+            self.assertEqual(verifier.verify(root), report)
+            artifact = root / "baseline-sum-1.json"
+            original = artifact.read_bytes()
+            artifact.write_text("{}")
+            self.assertEqual(verifier.verify(root)["decision"], "INCONCLUSIVE")
+            artifact.write_bytes(original)
+            self.assertEqual(verifier.verify(root), report)
+            (root / "baseline-sum-1.db").unlink()
+            self.assertEqual(verifier.verify(root)["decision"], "INCONCLUSIVE")
             with self.assertRaises(FileExistsError):
                 await self.runner(client).run(root, {}, {})
 

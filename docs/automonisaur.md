@@ -24,6 +24,7 @@ while reusing the existing config/environment convention.
 | Model and HTTP integrations | Existing clients include Ollama and Requests | Revisit when implementing a real provider; no unused clients added |
 | Signal identifiers | `uuidWrapper.Uuid.hex` generates UUID1 | Retain random UUID4 identifiers |
 | Signal serialization | `jsonWrapper.Json.dumps_dict` converts values to strings | Retain typed JSON with non-finite numbers rejected |
+| Evaluation evidence verification | No upstream SQLite client; JSON helper loses types | `EvaluationEvidenceClient` uses read-only SQLite and reuses the scorer and strict JSON key checks |
 | Evaluation provenance | The JSON helper does not validate metadata or hash source | Use a strict config model and SHA-256; capture only non-secret client settings |
 | Evaluation collection | The JSON helper loses nested types and has no session lifecycle | Reuse `PiRunner`, `Vault`, and the scorer; standard JSON retains typed attempt evidence |
 | Evaluation records | The JSON helper stringifies nested values | Reuse Pydantic and `ExecutionOutcome` for typed scoring inputs; keep suite policy in `EvaluationConfig` |

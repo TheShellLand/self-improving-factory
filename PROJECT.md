@@ -287,6 +287,7 @@ Depends on Phases 8–10.
 - [x] Implement deterministic text-suite scoring with incomplete-evidence and regression checks.
 - [x] Collect paired evaluation attempts in isolated vaults with retained results and cancellation evidence.
 - [x] Record declared execution provenance and reject changes to captured client settings during evaluation.
+- [x] Verify saved evaluation artifact hashes, report consistency, and database session/result linkage read-only.
 - [ ] Restore the previous configuration when a change fails evaluation.
 - [ ] Demonstrate a live, traceable analysis update and repeatable comparison
   reporting improvement, regression, or no change.

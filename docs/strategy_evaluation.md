@@ -112,6 +112,17 @@ does not retain raw responses that fail before the event callback. Complete that
 provenance work before using results to approve adoption. These reports are
 diagnostic comparisons, not authorization to activate a strategy.
 
+Completed manifests include SHA-256 hashes for all attempt JSON and SQLite files.
+`EvaluationEvidenceClient().verify(directory)` from `core.evaluation_evidence`
+checks those hashes, recomputes scoring and strategy hashes, and verifies each
+attempt's unique session, issue linkage, terminal status, and summary against
+its database opened read-only. Missing, altered, or inconsistent artifacts return
+INCONCLUSIVE. Older manifests without artifact hashes also return INCONCLUSIVE.
+Keep completed runs immutable; editing their databases invalidates verification.
+Hashes in the same manifest detect inconsistencies, not coordinated replacement
+of the manifest and evidence. This is not a signature or independent proof of
+model execution, provenance declarations, or protocol settlement.
+
 The scorer accepts two collections of `EvaluationAttempt` records, each containing
 case ID, repetition (1–5), a unique evidence reference, and either an outcome or
 a failure category. Call `StrategyEvaluator().compare(baseline, candidate)`.

@@ -83,6 +83,10 @@ class EvaluationRunner:
                         manifest["attempts"][name].append(record)
                         self._write(root / "manifest.json", manifest)
             manifest["report"] = StrategyEvaluator().compare(**manifest["attempts"])
+            manifest["artifacts"] = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in root.iterdir() if path.suffix in (".db", ".json")
+                and path.name != "manifest.json"}
             manifest["status"] = "COMPLETED"
         except BaseException:
             manifest["status"] = "INCOMPLETE"
