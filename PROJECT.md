@@ -167,10 +167,13 @@ Evidence: `tests/test_ui_bridge.py` and recovery API tests in
 - [x] Load configuration by insertion ID so equal timestamps do not skip updates.
 - [ ] Connect a real analysis client (Phase 12).
 - [ ] Evaluate drift and measure strategy quality (Phase 12).
-- [ ] Handle invalid legacy updates without silently losing later records (Phase 12).
+- [x] Handle invalid legacy updates without silently losing later records (Phase 12).
 
 Evidence: `tests/test_convergence.py` and `tests/test_coordinator.py`.
-An invalid update currently blocks the loader until corrected. The legacy batch
+Invalid updates remain stored and receive rejection observations before the loader
+continues to later rows. Restart rebuilds configuration and records rejections again.
+Correct an invalid update by appending a replacement, not editing processed rows.
+The legacy batch
 API leaves deduplication to its caller; the coordinator uses session-scoped reflection.
 
 ### Phase 7 — Convergence and autonomy
@@ -276,17 +279,32 @@ Depends on Phases 8–10 and Phase 14's execution-stop/recovery support.
 Depends on Phases 8–10.
 
 - [ ] Connect a real analysis client using exact-session evidence.
-- [ ] Validate strategy proposals and version configuration updates.
-- [ ] Handle invalid updates without silently losing later records.
-- [ ] Define an evaluation task set, baseline, success metric, and regression
+- [x] Validate strategy proposals and version configuration updates.
+- [x] Handle invalid updates without silently losing later records.
+- [x] Define an evaluation task set, baseline, success metric, and regression
   threshold before automatically adopting changes.
 - [ ] Evaluate strategy quality and drift using recorded outcomes.
+- [x] Implement deterministic text-suite scoring with incomplete-evidence and regression checks.
+- [x] Collect paired evaluation attempts in isolated vaults with retained results and cancellation evidence.
+- [x] Record declared execution provenance and reject changes to captured client settings during evaluation.
 - [ ] Restore the previous configuration when a change fails evaluation.
 - [ ] Demonstrate a live, traceable analysis update and repeatable comparison
   reporting improvement, regression, or no change.
 - [ ] Test rejection and rollback of harmful or invalid updates.
 
 Persisting a configuration update alone does not establish improvement.
+`StrategyProposal` requires a nonblank explanation and finite JSON configuration
+with string keys. Unknown proposal fields and duplicate keys in JSON text are
+rejected before writes. `tests/test_convergence.py` verifies rejection without
+version/audit changes, exact value types, and session-deduplicated versioning.
+Strategy usefulness and regression evaluation remain separate tasks.
+The [text-suite evaluation contract](docs/strategy_evaluation.md) defines six
+fixed cases, paired baseline/candidate runs, exact scoring, and zero per-case
+regression tolerance. `StrategyEvaluator` implements scoring, covered by
+`tests/test_evaluation.py`. `EvaluationRunner` collects isolated attempts and
+scores them; `tests/test_evaluation_runner.py` verifies the collection flow with
+an injected client. Live verification, full comparison-manifest validation,
+measured scores, and enforcement before activation remain unimplemented.
 
 ### Phase 13 — Web interface and human controls
 
@@ -314,7 +332,7 @@ Build required pieces alongside Phases 9–13, before unattended deployment.
 - [ ] Demonstrate authorized reconciliation of an interrupted attempt with an audit trail.
 - [x] Document current API deployment configuration and startup blockers in
   `docs/deployment.md`.
-- [ ] Resolve the documented API startup blocker and verify deployment from a fresh image.
+- [x] Resolve the documented API startup blocker and verify deployment from a fresh image.
 - [ ] Implement backup/restore for SQLite and Git revisions referenced by audit records.
 - [ ] Restore into a separate environment and verify issues, sessions, strategy
   versions, and referenced commits.

@@ -5,6 +5,7 @@ from core.critic import CriticModule
 from core.database import DatabaseClient
 from core.signals import SignalPulse
 from core.vault import Vault
+from core.strategy import StrategyProposal
 
 
 class EvolutionEngine:
@@ -34,6 +35,7 @@ class EvolutionEngine:
             traces = critic.correlate_failures_to_signals(session_id) if session_id else []
             update = self.reflection_provider(issue, traces)
             if update is not None:
+                update = StrategyProposal.model_validate(update).model_dump()
                 versions.append(self._commit_knowledge_update(
                     update["logic_description"], update["prompt_weights"]))
         return versions
@@ -51,14 +53,14 @@ class EvolutionEngine:
         update = self.reflection_provider(issue, traces)
         if update is None:
             return None
+        update = StrategyProposal.model_validate(update).model_dump()
         return self._commit_knowledge_update(
             update["logic_description"], update["prompt_weights"], source_id=session_id)
 
     def _commit_knowledge_update(self, desc, weights, *, source_id=None):
-        weights = json.loads(weights) if isinstance(weights, str) else weights
-        if not isinstance(weights, dict):
-            raise ValueError("Prompt weights must be a JSON object")
-        encoded = json.dumps(weights, allow_nan=False)
+        proposal = StrategyProposal(logic_description=desc, prompt_weights=weights)
+        desc = proposal.logic_description
+        encoded = json.dumps(proposal.prompt_weights, allow_nan=False)
         with self.database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             if source_id is not None:

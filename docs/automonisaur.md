@@ -24,6 +24,11 @@ while reusing the existing config/environment convention.
 | Model and HTTP integrations | Existing clients include Ollama and Requests | Revisit when implementing a real provider; no unused clients added |
 | Signal identifiers | `uuidWrapper.Uuid.hex` generates UUID1 | Retain random UUID4 identifiers |
 | Signal serialization | `jsonWrapper.Json.dumps_dict` converts values to strings | Retain typed JSON with non-finite numbers rejected |
+| Evaluation provenance | The JSON helper does not validate metadata or hash source | Use a strict config model and SHA-256; capture only non-secret client settings |
+| Evaluation collection | The JSON helper loses nested types and has no session lifecycle | Reuse `PiRunner`, `Vault`, and the scorer; standard JSON retains typed attempt evidence |
+| Evaluation records | The JSON helper stringifies nested values | Reuse Pydantic and `ExecutionOutcome` for typed scoring inputs; keep suite policy in `EvaluationConfig` |
+| Strategy proposal validation | The JSON helper stringifies values and does not validate proposals | Reuse Pydantic strict models and JSON value validation in `StrategyProposal` |
+| Legacy configuration validation | The same helper serializes strings without validating stored objects | Hotloader validates JSON objects and records rejected update IDs through `Vault` before advancing |
 | Pi event persistence | The JSON helper loses nested types; no pi adapter exists | Reuse `SignalPulse` and `Vault.record` through `PiEventRecorder` |
 | Structured pi results | The same JSON helper offers serialization, not typed validation | Reuse SIF's `ExecutionOutcome` with a strict JSON parser and proposal checks |
 | Coordinator prompt context | `Json.dumps_dict` stringifies nested values | `PiRunner` uses standard JSON to preserve issue and strategy types and reuses `PiClient.run_structured` |

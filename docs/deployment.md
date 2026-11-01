@@ -9,6 +9,19 @@ or browser dashboard. See [runtime verification](runtime_guide.md) and
 `ApiConfig` has been restored and the regression suite passes. Rebuild the image
 from this checkout before deploying; an older image does not include the fix.
 
+Verified on 2026-11-01 using `bash build.sh` and a new container with an isolated
+data volume and a randomly assigned localhost port. Startup completed;
+`GET /api/issues` returned HTTP 200 with `[]`, and `GET /openapi.json` returned
+HTTP 200. The temporary container and its anonymous data volume were removed.
+
+Verified image ID:
+`sha256:7144c65f5af04785fce78a4ee0a6c1511484c310d734f65a9a348dd0550d3f6f`.
+The source checkout was based on `a52e9ed0a1db2a7ccad31e5dc3ec8aa144d50d48`
+with the pending hotloader rejection-handling changes included. Automonisaur
+resolved to `1a300fd962f0dd9a81ac04f2f02b530e6cdc10bb`. This verifies API startup
+against an empty database, not production authentication, existing-data migration,
+backup/restore, or live agent execution.
+
 ## Configuration
 
 The application does not automatically load `.env` files. Export variables for
