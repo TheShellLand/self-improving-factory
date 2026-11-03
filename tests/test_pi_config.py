@@ -10,6 +10,7 @@ class TestPiAgentConfig(unittest.TestCase):
     def test_defaults(self):
         config = PiAgentConfig()
         self.assertEqual(config.executable, "pi")
+        self.assertEqual(config.max_events, 10000)
         self.assertIsNone(config.model)
         self.assertIsNone(config.provider)
         self.assertEqual((config.timeout, config.cleanup_timeout, config.max_record_bytes),
@@ -42,6 +43,7 @@ class TestPiAgentConfig(unittest.TestCase):
             "timeout": (True, 0, -1, "nan", "inf", "bad"),
             "cleanup_timeout": (True, 0, -1, "nan", "inf", "bad"),
             "max_record_bytes": (True, 0, -1, 1.5, "1.5", "inf"),
+            "max_events": (True, 0, -1, 1.5, "1.5", "inf", ""),
         }
         for setting, values in cases.items():
             for value in values:
@@ -61,3 +63,8 @@ class TestPiAgentConfig(unittest.TestCase):
         self.assertNotIn(" 'exact secret' ", config.argv())
         environment["OPENAI_API_KEY"] = "changed"
         self.assertEqual(config.environment()["OPENAI_API_KEY"], " 'exact secret' ")
+
+    @patch.dict(os.environ, {"SIFH_PI_MAX_EVENTS": "12"}, clear=True)
+    def test_event_limit_environment_and_override(self):
+        self.assertEqual(PiAgentConfig().max_events, 12)
+        self.assertEqual(PiAgentConfig(max_events=2).max_events, 2)

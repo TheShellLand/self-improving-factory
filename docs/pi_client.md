@@ -46,6 +46,13 @@ drained without retention, and deadlines or cancellation trigger process cleanup
 Shutdown closes stdin, then kills the direct child if it exceeds the cleanup
 timeout. Container/process-tree termination belongs to Phase 9.
 
+`SIFH_PI_MAX_EVENTS` (default 10000; positive integer) limits session events
+per operation. `PiAgentConfig(max_events=...)` overrides the environment value.
+The first excess event aborts the operation before its callback is invoked and
+triggers normal process cleanup. Earlier observations remain stored. The limit
+resets for each operation and includes settlement events; RPC responses are
+excluded. This bounds event count, not total wire bytes or database retention.
+
 With pi installed on PATH, check transport without making a model request:
 
 ```sh

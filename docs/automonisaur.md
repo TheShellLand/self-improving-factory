@@ -35,6 +35,7 @@ while reusing the existing config/environment convention.
 | Coordinator prompt context | `Json.dumps_dict` stringifies nested values | `PiRunner` uses standard JSON to preserve issue and strategy types and reuses `PiClient.run_structured` |
 | Audit timestamps | `Dates` returns local datetime/date values | Retain Unix timestamps |
 | Event receipt intervals | `Dates` has no monotonic interval helper | Use standard-library `monotonic` in `PiEventRecorder` |
+| Pi event budget | `subprocessWrapper.Run` captures output with `communicate()` and has no event callback budget | Enforce a per-operation event count in `PiClient` before callbacks |
 | Proposal content evidence | `cryptography.hashing.Hashlib` provides MD5 | Retain SHA-256 content hashes |
 
 Before creating code, inspect the installed upstream revision for a matching

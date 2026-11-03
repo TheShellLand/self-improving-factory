@@ -43,6 +43,7 @@ class PiClient:
         acknowledged = False
         settled = False
         message = None
+        event_count = 0
         while True:
             record = await self._read(process)
             if record["type"] == "response":
@@ -57,6 +58,9 @@ class PiClient:
                     raise PiAgentError("Prompt did not start a new agent run")
                 acknowledged = True
             else:
+                event_count += 1
+                if event_count > self.config.max_events:
+                    raise PiAgentError("pi RPC event limit exceeded")
                 if on_event is not None:
                     on_event(record)
                 if record["type"] == "message_end":

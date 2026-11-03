@@ -51,6 +51,28 @@ class RpcProcess:
 
 
 class TestPiClient(unittest.IsolatedAsyncioTestCase):
+    async def test_event_overflow_stops_before_callback_and_cleans_up(self):
+        for callback_enabled in (False, True):
+            process = RpcProcess("success")
+            events = []
+            with patch("core.pi_client.asyncio.create_subprocess_exec", AsyncMock(return_value=process)):
+                with self.assertRaisesRegex(PiAgentError, "event limit exceeded"):
+                    await PiClient(PiAgentConfig(max_events=2)).run_inference(
+                        "hello", on_event=events.append if callback_enabled else None)
+            self.assertEqual(len(events), 2 if callback_enabled else 0)
+            self.assertTrue(process.closed)
+
+    async def test_exact_event_limit_succeeds_and_resets_per_operation(self):
+        client = PiClient(PiAgentConfig(max_events=3))
+        for _ in range(2):
+            process = RpcProcess("success")
+            events = []
+            with patch("core.pi_client.asyncio.create_subprocess_exec", AsyncMock(return_value=process)):
+                result = await client.run_inference("hello", on_event=events.append)
+            self.assertTrue(result["text"])
+            self.assertEqual(len(events), 3)
+            self.assertTrue(process.closed)
+
     async def test_success_waits_for_settlement_and_preserves_unicode(self):
         process = RpcProcess("success")
         events = []

@@ -52,7 +52,7 @@ class ApiConfig:
 
 class PiAgentConfig:
     def __init__(self, executable=None, model=None, provider=None, timeout=None,
-                 cleanup_timeout=None, max_record_bytes=None):
+                 cleanup_timeout=None, max_record_bytes=None, max_events=None):
         # Preserve literal strings: environ coerces "true" and strips quotes.
         self.executable = self._text(executable, "SIFH_PI_EXECUTABLE", "pi")
         self.model = self._text(model, "SIFH_MODEL")
@@ -69,6 +69,16 @@ class PiAgentConfig:
             raise ValueError("SIFH_PI_MAX_RECORD_BYTES must be a positive integer") from None
         if self.max_record_bytes <= 0:
             raise ValueError("SIFH_PI_MAX_RECORD_BYTES must be a positive integer")
+        event_limit = max_events if max_events is not None else os.getenv(
+            "SIFH_PI_MAX_EVENTS", "10000")
+        if isinstance(event_limit, bool) or not isinstance(event_limit, (str, int)):
+            raise ValueError("SIFH_PI_MAX_EVENTS must be a positive integer")
+        try:
+            self.max_events = int(event_limit)
+        except ValueError:
+            raise ValueError("SIFH_PI_MAX_EVENTS must be a positive integer") from None
+        if self.max_events <= 0:
+            raise ValueError("SIFH_PI_MAX_EVENTS must be a positive integer")
 
     @staticmethod
     def _text(value, name, default=None):

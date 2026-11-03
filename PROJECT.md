@@ -211,6 +211,7 @@ automatically started daemon; local tests do not establish live autonomy.
 - [x] Define host-owned goal completion, bounded iteration, and verification acceptance criteria
   in [the goal completion contract](docs/goal_completion.md).
 - [ ] Measure and record live event latency.
+- [x] Bound host pi event callbacks per operation with a configurable event limit and cleanup on overflow; Docker streaming remains pending.
 - [x] Record monotonic host receipt elapsed times and inter-event intervals; covered by `tests/test_pi_events.py`. Live
   transport latency remains unverified.
 
