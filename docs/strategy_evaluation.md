@@ -104,8 +104,11 @@ Metadata must include `source_revision` (a full hexadecimal Git revision) and
 `pi_version`; optional `model_revision` records a declared provider revision.
 These values are caller declarations, not independently verified facts. The
 client must select an explicit provider and model. The collector captures its
-argv, timeout, cleanup timeout, record limit, and the SHA-256 of `PiRunner` source
+argv, timeout, cleanup timeout, record limit, event limit, and the SHA-256 of `PiRunner` source
 (including prompt construction). Changed captured settings abort the comparison.
+The event limit is stored as `execution.max_events`; changing it during a run
+leaves the comparison INCOMPLETE and its decision INCONCLUSIVE. Earlier manifests
+without this field do not establish which event budget was used.
 Credentials and the inherited environment are not captured. Generation settings
 remain pi defaults, and provider revision verification remains unfinished. It also
 does not retain raw responses that fail before the event callback. Complete that

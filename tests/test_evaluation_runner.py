@@ -36,6 +36,7 @@ class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(list(root.glob("*.db"))), 60)
             manifest = json.loads((root / "manifest.json").read_text())
             self.assertEqual(manifest["status"], "COMPLETED")
+            self.assertEqual(manifest["execution"]["max_events"], client.config.max_events)
             self.assertEqual(len(manifest["attempts"]["baseline"]), 30)
             verifier = EvaluationEvidenceClient()
             self.assertEqual(verifier.verify(root), report)
@@ -95,3 +96,24 @@ class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(ValueError, "provenance"):
                 await EvaluationRunner(AsyncMock()).run(root, {}, {})
             self.assertFalse(root.exists())
+
+    async def test_changed_event_budget_aborts_comparison(self):
+        client = AsyncMock()
+        runner = self.runner(client)
+        client.config.max_events = 12
+
+        async def changed(*args, **kwargs):
+            client.config.max_events = 13
+            return ExecutionOutcome(success=True, summary="42")
+
+        client.run_structured.side_effect = changed
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "run"
+            with self.assertRaisesRegex(ValueError, "settings changed"):
+                await runner.run(root, {}, {})
+            manifest = json.loads((root / "manifest.json").read_text())
+            self.assertEqual(manifest["execution"]["max_events"], 12)
+            self.assertEqual(manifest["status"], "INCOMPLETE")
+            self.assertEqual(manifest["report"]["decision"], "INCONCLUSIVE")
+            self.assertEqual(client.run_structured.await_count, 1)
+            self.assertTrue((root / "baseline-sum-1.db").exists())

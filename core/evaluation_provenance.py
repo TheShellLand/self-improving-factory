@@ -29,6 +29,7 @@ class EvaluationProvenanceConfig(BaseModel):
             "runner_source_sha256": hashlib.sha256(inspect.getsource(PiRunner).encode()).hexdigest(),
             "argv": config.argv(), "timeout": config.timeout,
             "cleanup_timeout": config.cleanup_timeout, "max_record_bytes": config.max_record_bytes,
+            "max_events": config.max_events,
             "generation_settings": "pi defaults; not controlled by this adapter",
             "model_revision_verified": False,
         }

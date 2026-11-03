@@ -309,6 +309,7 @@ Depends on Phases 8–10.
 - [x] Implement deterministic text-suite scoring with incomplete-evidence and regression checks.
 - [x] Collect paired evaluation attempts in isolated vaults with retained results and cancellation evidence.
 - [x] Record declared execution provenance and reject changes to captured client settings during evaluation.
+- [x] Capture the pi event budget in evaluation provenance and reject budget drift during comparison.
 - [x] Verify saved evaluation artifact hashes, report consistency, and database session/result linkage read-only.
 - [ ] Restore the previous configuration when a change fails evaluation.
 - [ ] Demonstrate a live, traceable analysis update and repeatable comparison
