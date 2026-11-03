@@ -206,10 +206,13 @@ automatically started daemon; local tests do not establish live autonomy.
 - [x] Validate structured results and file proposals before returning them to the coordinator.
 - [x] Test malformed output, disconnects, and agent failure without inventing success.
 - [x] Process one issue with a live agent and retain its events and final result.
-- [ ] Ensure agent loops continuously until `/goal` state requirements are met before declaring a multi-step goal completed.
-- [x] Define host-owned goal completion, bounded iteration, and verification acceptance criteria in [the goal completion contract](docs/goal_completion.md).
+- [ ] Ensure agent loops continuously until `/goal` state requirements are met before declaring a multi-step goal
+  completed.
+- [x] Define host-owned goal completion, bounded iteration, and verification acceptance criteria
+  in [the goal completion contract](docs/goal_completion.md).
 - [ ] Measure and record live event latency.
-- [x] Record monotonic host receipt elapsed times and inter-event intervals; covered by `tests/test_pi_events.py`. Live transport latency remains unverified.
+- [x] Record monotonic host receipt elapsed times and inter-event intervals; covered by `tests/test_pi_events.py`. Live
+  transport latency remains unverified.
 
 Container execution follows in Phase 9; verified code promotion requires Phase 10.
 
