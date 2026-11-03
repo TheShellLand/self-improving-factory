@@ -21,14 +21,14 @@ with installed `@earendil-works/pi-coding-agent` 1.4.0. Versions without
 `agent_settled` are not supported and will hit the deadline rather than report
 premature success.
 
-`PiAgentConfig` reads `SIF_PI_EXECUTABLE` (default `pi`), `SIF_MODEL`,
-`SIF_PROVIDER`, and `SIF_TIMEOUT` (default 120 seconds). Model/provider options
+`PiAgentConfig` reads `SIFH_PI_EXECUTABLE` (default `pi`), `SIFH_MODEL`,
+`SIFH_PROVIDER`, and `SIFH_TIMEOUT` (default 120 seconds). Model/provider options
 are passed as actual CLI flags. Provider credentials are inherited unchanged
 from the environment; no invented `PI_MODEL` or `PI_PROVIDER` variables are used.
 Pi may also use its own configured authentication. This client does not manage
 pi's stored credentials.
 
-`SIF_PI_CLEANUP_TIMEOUT` defaults to 5 seconds and `SIF_PI_MAX_RECORD_BYTES`
+`SIFH_PI_CLEANUP_TIMEOUT` defaults to 5 seconds and `SIFH_PI_MAX_RECORD_BYTES`
 defaults to 1048576 bytes per stdout record. Explicit constructor options override
 environment settings. Timeouts must be finite and positive; the record limit must
 be a positive integer. Executable, model, and provider values must be nonblank
@@ -58,7 +58,7 @@ This asks for 17 + 25, retains a separate `vault.db` and `evidence.json`, and
 requires a completed session with summary `42` and a settlement event. Existing
 directories are rejected. Reflection is explicitly a no-op provider and code
 promotion is not configured. Failures retain evidence and return a nonzero exit.
-Use `SIF_PROVIDER` and `SIF_MODEL` to select a reachable configured provider.
+Use `SIFH_PROVIDER` and `SIFH_MODEL` to select a reachable configured provider.
 
 Example inside an async application:
 
@@ -107,3 +107,9 @@ client cleanup. Previously stored events survive later failures. Omitting the
 vault retains the standalone runner behavior without event persistence. Event
 payloads retain model content; they are not redacted. Retention limits and
 production access controls remain deployment work.
+
+Event metadata includes `receipt_timing.elapsed_seconds` measured from recorder
+creation and `receipt_timing.inter_event_seconds` measured from the previous
+successfully persisted event (null for the first). Both use the host monotonic
+clock. They include host scheduling and processing delays and do not establish
+source-to-host transport latency. Failed writes do not advance the timing baseline.

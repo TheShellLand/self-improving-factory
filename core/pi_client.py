@@ -106,7 +106,7 @@ class PiClient:
         async with self._lock:
             process = None
             stderr_task = None
-            with tempfile.TemporaryDirectory(prefix="sif-pi-") as directory:
+            with tempfile.TemporaryDirectory(prefix="sifh-pi-") as directory:
                 try:
                     async with asyncio.timeout(self.config.timeout):
                         process = await asyncio.create_subprocess_exec(

@@ -63,6 +63,31 @@ class TestPiEvents(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.records(), [])
         self.assertEqual(self.recorder.sequence, 0)
 
+    def test_receipt_timing_uses_monotonic_clock(self):
+        with patch("core.pi_events.monotonic", side_effect=[100, 100.25, 101]):
+            recorder = PiEventRecorder(self.vault, self.session, self.issue["issue_id"])
+            recorder({"type": "start", "elapsed_seconds": 999})
+            recorder({"type": "agent_settled"})
+        timing = [json.loads(row["metadata"])["receipt_timing"]
+                  for row in self.records()]
+        self.assertEqual(timing, [
+            {"elapsed_seconds": 0.25, "inter_event_seconds": None},
+            {"elapsed_seconds": 1, "inter_event_seconds": 0.75},
+        ])
+
+    def test_failed_write_does_not_advance_timing(self):
+        vault = Mock()
+        vault.record.side_effect = [None, RuntimeError("write failed"), None]
+        with patch("core.pi_events.monotonic", side_effect=[100, 101, 102, 104]):
+            recorder = PiEventRecorder(vault, self.session, self.issue["issue_id"])
+            recorder({"type": "start"})
+            with self.assertRaises(RuntimeError):
+                recorder({"type": "update"})
+            recorder({"type": "end"})
+        signal = vault.record.call_args.args[0]
+        self.assertEqual(signal.payload["sequence"], 2)
+        self.assertEqual(signal.metadata["receipt_timing"]["inter_event_seconds"], 3)
+
     async def test_storage_failure_propagates_and_closes_process(self):
         process = RpcProcess("success")
         vault = Mock()

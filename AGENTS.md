@@ -1,4 +1,4 @@
-# self improving factory
+# Self Improving Factory Harness (SIFH)
 
 read PROJECT.md when it's time to work.
 
@@ -44,5 +44,5 @@ logic including:
    `test.sh` (located in project root).
 2) **Environment Context**: Mandatory `$PYTHONPATH=.` settings and dependency installation steps via `requirements.txt`.
 3) **Signal Integrity**: Contractual details on RPC mode signals (`--mode rpc`) used by both the Host Orchestrator and
-   Subagent Runners to ensure zero-terminal feedback cycles satisfy SIF goals.
+   Subagent Runners to ensure zero-terminal feedback cycles satisfy SIFH goals.
    Reference this guide before spawning child containers or performing deep audits of internal code paths.

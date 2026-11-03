@@ -81,11 +81,11 @@ class TestPiClient(unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_executable(self):
         with self.assertRaises(PiAgentError):
-            await PiClient(PiAgentConfig(executable="/nonexistent/sif-pi")).run_inference("hello")
+            await PiClient(PiAgentConfig(executable="/nonexistent/sifh-pi")).run_inference("hello")
 
     def test_configuration_reads_environment_and_preserves_credentials(self):
-        with patch.dict(os.environ, {"SIF_MODEL": "test", "SIF_PROVIDER": "example",
-                                     "SIF_TIMEOUT": "7", "OPENAI_API_KEY": " exact value "}):
+        with patch.dict(os.environ, {"SIFH_MODEL": "test", "SIFH_PROVIDER": "example",
+                                     "SIFH_TIMEOUT": "7", "OPENAI_API_KEY": " exact value "}):
             config = PiAgentConfig()
             self.assertEqual(config.timeout, 7)
             self.assertIn("test", config.argv())

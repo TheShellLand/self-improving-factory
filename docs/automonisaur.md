@@ -1,6 +1,6 @@
 # Automonisaur reuse and code conventions
 
-SIF uses [automonisaur](https://github.com/TheShellLand/automonisaur) as its first
+SIFH uses [automonisaur](https://github.com/TheShellLand/automonisaur) as its first
 source of reusable integrations and as the reference for object-oriented code.
 The runtime requirement follows upstream's default branch. The revision inspected
 and tested for this refactor was `1a300fd962f0dd9a81ac04f2f02b530e6cdc10bb`;
@@ -18,7 +18,7 @@ while reusing the existing config/environment convention.
 | Environment settings | `automon.helpers.osWrapper.environ` | Import directly in config classes |
 | Pi CLI settings | The environment helper coerces booleans and trims quotes | Use `os.getenv` inside `PiAgentConfig` to preserve literal CLI values and reject invalid settings |
 | Config/client separation | Integration `config.py` and `client.py` classes | Apply to SQLite, Git, Docker, and application setup |
-| SQLite transactions and migrations | No SQLite client in the inspected revision | `DatabaseClient` retains SIF's transaction and migration rules |
+| SQLite transactions and migrations | No SQLite client in the inspected revision | `DatabaseClient` retains SIFH's transaction and migration rules |
 | Docker lifecycle | No Docker client; `subprocessWrapper.Run` has no communicate timeout | `DockerClient` retains argv execution, timeout cleanup, and status tracking |
 | Git proposals and recovery evidence | No Git client in the inspected revision | `GitClient` retains validation, rollback, and recovery checks |
 | Model and HTTP integrations | Existing clients include Ollama and Requests | Revisit when implementing a real provider; no unused clients added |
@@ -31,9 +31,10 @@ while reusing the existing config/environment convention.
 | Strategy proposal validation | The JSON helper stringifies values and does not validate proposals | Reuse Pydantic strict models and JSON value validation in `StrategyProposal` |
 | Legacy configuration validation | The same helper serializes strings without validating stored objects | Hotloader validates JSON objects and records rejected update IDs through `Vault` before advancing |
 | Pi event persistence | The JSON helper loses nested types; no pi adapter exists | Reuse `SignalPulse` and `Vault.record` through `PiEventRecorder` |
-| Structured pi results | The same JSON helper offers serialization, not typed validation | Reuse SIF's `ExecutionOutcome` with a strict JSON parser and proposal checks |
+| Structured pi results | The same JSON helper offers serialization, not typed validation | Reuse SIFH's `ExecutionOutcome` with a strict JSON parser and proposal checks |
 | Coordinator prompt context | `Json.dumps_dict` stringifies nested values | `PiRunner` uses standard JSON to preserve issue and strategy types and reuses `PiClient.run_structured` |
 | Audit timestamps | `Dates` returns local datetime/date values | Retain Unix timestamps |
+| Event receipt intervals | `Dates` has no monotonic interval helper | Use standard-library `monotonic` in `PiEventRecorder` |
 | Proposal content evidence | `cryptography.hashing.Hashlib` provides MD5 | Retain SHA-256 content hashes |
 
 Before creating code, inspect the installed upstream revision for a matching
@@ -54,7 +55,7 @@ from core.config import DatabaseConfig, DockerConfig
 from core.database import DatabaseClient
 from core.orchestrator_manager import DockerClient
 
-database = DatabaseClient(config=DatabaseConfig(database_path="/tmp/sif-example.db"))
+database = DatabaseClient(config=DatabaseConfig(database_path="/tmp/sifh-example.db"))
 database.initialize()
 docker = DockerClient(config=DockerConfig(timeout=120, cleanup_timeout=10))
 ```
@@ -63,7 +64,7 @@ Tokens, keys, secrets, and passwords must be read from environment variables
 inside the relevant config class. Do not put secrets in source defaults, example
 files, repr output, or logs. Use `os.getenv` for exact credential strings:
 automonisaur's `environ` helper strips quotes/whitespace and converts boolean
-strings, which is useful for settings but can alter a credential. Current SIF
+strings, which is useful for settings but can alter a credential. Current SIFH
 clients connect to local Git/SQLite or inherit Docker's environment; there is no
 model API credential consumer yet.
 
@@ -72,9 +73,9 @@ model API credential consumer yet.
 Install with `python -m pip install -r requirements-dev.txt` using the configured
 interpreter. Runtime installations use `requirements.txt`; Git is needed to fetch
 the upstream source. The normal upstream package installs many integration
-dependencies, even when SIF only imports a helper. Its package initialization
+dependencies, even when SIFH only imports a helper. Its package initialization
 also configures Python logging. These are upstream behaviors, not a claim that
-SIF uses every integration. The Docker build installs the same dependency.
+SIFH uses every integration. The Docker build installs the same dependency.
 
 ## Verification
 

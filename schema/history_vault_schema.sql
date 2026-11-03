@@ -1,4 +1,4 @@
--- Database Schema Initialization for SIF History Vault
+-- Database Schema Initialization for SIFH History Vault
 
 PRAGMA foreign_keys = ON;
 

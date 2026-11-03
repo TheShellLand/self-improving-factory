@@ -8,11 +8,11 @@ your configured interpreter's `-m pip install -r requirements.txt`; use
 `requirements-dev.txt` for tests. Activate a virtual environment first. Agents
 using PyCharm must follow the python-tools skill to select its configured SDK.
 
-`SIF_DB_PATH` selects the SQLite database; the default is the project-root
+`SIFH_DB_PATH` selects the SQLite database; the default is the project-root
 `history_vault.db`. The application does not automatically load `.env` files.
-Configuration classes read defaults at construction. `SIF_API_HOST` and
-`SIF_API_PORT` configure the server; `SIF_TASK_TIMEOUT`, `SIF_CLEANUP_TIMEOUT`,
-and `SIF_POLL_INTERVAL` configure execution, cleanup, and configuration polling
+Configuration classes read defaults at construction. `SIFH_API_HOST` and
+`SIFH_API_PORT` configure the server; `SIFH_TASK_TIMEOUT`, `SIFH_CLEANUP_TIMEOUT`,
+and `SIFH_POLL_INTERVAL` configure execution, cleanup, and configuration polling
 in seconds. See `.env-example` and [reuse conventions](automonisaur.md).
 `python -m scripts.init_vault` creates missing tables without resetting records.
 Initialization upgrades the original issue-status constraint and adds audit/link
@@ -26,17 +26,17 @@ settings, replacement procedures, and startup configuration.
 
 With Docker Engine 26+ running:
 
-1. Run `bash build.sh` to build `sif_runtime`.
+1. Run `bash build.sh` to build `sifh_runtime`.
 2. Run `bash run.sh` for an idle development container, or `bash test.sh` for an
    interactive verification shell. Both mount this checkout at `/app` and set
-   `SIF_VIEWPORT=1920x1080`. The image sets `PYTHONPATH=/app`.
+   `SIFH_VIEWPORT=1920x1080`. The image sets `PYTHONPATH=/app`.
 3. Stop an idle container using `docker rm -f <container-name>` when done.
 
 For the API with persistent storage:
 
 ```sh
-docker run --rm -p 8000:8000 -e SIF_DB_PATH=/data/history_vault.db \
-  -v sif-data:/data sif_runtime
+docker run --rm -p 8000:8000 -e SIFH_DB_PATH=/data/history_vault.db \
+  -v sifh-data:/data sifh_runtime
 ```
 
 The image includes Python, Git, Bash, and the application dependencies. Its

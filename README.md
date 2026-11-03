@@ -1,6 +1,14 @@
-# Self-improving factory (SIF)
+# Self Improving Factory Harness (SIFH)
 
-A Python foundation for recording agent activity, managing issues, applying Git proposals, and loading reflection updates.
+An agent orchestration harness for managing tasks, agents, and isolated subagents,
+retaining execution evidence, and controlling proposed code and strategy changes.
+
+SIFH provides the execution lifecycle around agents: task claims, protocol events,
+verification boundaries, Git promotion, reflection, and recovery. It processes one
+model task at a time. The planned browser interface is an operator console for
+the harness. The coordinator and host pi adapter work today; containerized agent
+execution, continuous scheduling, verified promotion, and browser controls remain
+in progress. See [PROJECT.md](PROJECT.md) for verified milestones.
 
 ## Setup
 
@@ -14,7 +22,7 @@ PYTHONPATH=. .venv/bin/python -m scripts.main
 ```
 
 The API listens on port 8000; interactive API documentation is at `/docs`.
-Set `SIF_DB_PATH` to choose a database location. The default is
+Set `SIFH_DB_PATH` to choose a database location. The default is
 `history_vault.db` in the repository root. Initialization creates missing tables
 and upgrades the original issue-status constraint while preserving records.
 Other incompatible schemas require an explicit migration. Environment
@@ -31,18 +39,24 @@ curl -X POST http://localhost:8000/api/report-bug \
 
 ```sh
 bash build.sh
-docker run --rm -p 8000:8000 -e SIF_DB_PATH=/data/history_vault.db \
-  -v sif-data:/data sif_runtime
+docker run --rm -p 8000:8000 -e SIFH_DB_PATH=/data/history_vault.db \
+  -v sifh-data:/data sifh_runtime
 ```
 
 `bash run.sh` starts an idle development container with the checkout mounted.
 `bash test.sh` opens an interactive shell with the same mount. Both helpers work
-from any directory, including checkout paths containing spaces. Set `SIF_IMAGE`
+from any directory, including checkout paths containing spaces. Set `SIFH_IMAGE`
 to override their image tag. See [the runtime guide](docs/runtime_guide.md).
 
-When upgrading an existing deployment, update exported variables to `SIF_DB_PATH`
-and `SIF_IMAGE`, and rebuild the image as `sif_runtime`. Reuse the existing Docker
-data volume to retain your database; `sif-data` above is the name for a new setup.
+All project environment variables now use `SIFH_` instead of `SIF_`; old names
+are no longer read as configuration. Rename exported settings and deployment
+configuration, preserving their values, especially the database path. Provider
+credentials and standard variables such as `DOCKER_HOST` and `PYTHONPATH` retain
+their existing names.
+
+When upgrading an existing deployment, update exported variables to `SIFH_DB_PATH`
+and `SIFH_IMAGE`, and rebuild the image as `sifh_runtime`. Reuse the existing Docker
+data volume to retain your database; `sifh-data` above is the name for a new setup.
 
 ## Components
 

@@ -2,14 +2,14 @@
 set -euo pipefail
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # Execute an agent-specific command (or keep alive) within a sandbox
-IMAGE="${SIF_IMAGE:-sif_runtime}"
+IMAGE="${SIFH_IMAGE:-sifh_runtime}"
 CONTAINER_NAME="subagent_$(date +%s)"
 
 echo "Starting subagent $CONTAINER_NAME..."
 docker run -d \
     --name "$CONTAINER_NAME" \
     --network host \
-    -e SIF_VIEWPORT="1920x1080" \
+    -e SIFH_VIEWPORT="1920x1080" \
     -v "$PROJECT_DIR:/app" \
     -w /app \
     "$IMAGE" tail -f /dev/null

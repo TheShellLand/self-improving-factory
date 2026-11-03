@@ -11,16 +11,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 class DatabaseConfig:
     def __init__(self, database_path=None, schema_path=None):
         self.database_path = Path(database_path if database_path is not None else
-                                  environ("SIF_DB_PATH", str(PROJECT_ROOT / "history_vault.db")))
+                                  environ("SIFH_DB_PATH", str(PROJECT_ROOT / "history_vault.db")))
         self.schema_path = Path(schema_path if schema_path is not None else
                                 PROJECT_ROOT / "schema" / "history_vault_schema.sql")
 
 
 class DockerConfig:
     def __init__(self, timeout=None, docker_socket=None, cleanup_timeout=None):
-        self.timeout = float(timeout if timeout is not None else environ("SIF_TASK_TIMEOUT", 600))
+        self.timeout = float(timeout if timeout is not None else environ("SIFH_TASK_TIMEOUT", 600))
         self.cleanup_timeout = float(cleanup_timeout if cleanup_timeout is not None else
-                                     environ("SIF_CLEANUP_TIMEOUT", 10))
+                                     environ("SIFH_CLEANUP_TIMEOUT", 10))
         if any(not math.isfinite(value) or value <= 0
                for value in (self.timeout, self.cleanup_timeout)):
             raise ValueError("Docker timeouts must be finite and positive")
@@ -37,15 +37,15 @@ class DockerConfig:
 class HotLoaderConfig:
     def __init__(self, poll_interval=None):
         self.poll_interval = float(poll_interval if poll_interval is not None else
-                                   environ("SIF_POLL_INTERVAL", 5))
+                                   environ("SIFH_POLL_INTERVAL", 5))
         if not math.isfinite(self.poll_interval) or self.poll_interval <= 0:
             raise ValueError("poll_interval must be finite and positive")
 
 
 class ApiConfig:
     def __init__(self, host=None, port=None):
-        self.host = host if host is not None else environ("SIF_API_HOST", "0.0.0.0")
-        self.port = int(port if port is not None else environ("SIF_API_PORT", 8000))
+        self.host = host if host is not None else environ("SIFH_API_HOST", "0.0.0.0")
+        self.port = int(port if port is not None else environ("SIFH_API_PORT", 8000))
         if not 1 <= self.port <= 65535:
             raise ValueError("API port must be between 1 and 65535")
 
@@ -54,21 +54,21 @@ class PiAgentConfig:
     def __init__(self, executable=None, model=None, provider=None, timeout=None,
                  cleanup_timeout=None, max_record_bytes=None):
         # Preserve literal strings: environ coerces "true" and strips quotes.
-        self.executable = self._text(executable, "SIF_PI_EXECUTABLE", "pi")
-        self.model = self._text(model, "SIF_MODEL")
-        self.provider = self._text(provider, "SIF_PROVIDER")
-        self.timeout = self._positive(timeout, "SIF_TIMEOUT", 120)
-        self.cleanup_timeout = self._positive(cleanup_timeout, "SIF_PI_CLEANUP_TIMEOUT", 5)
+        self.executable = self._text(executable, "SIFH_PI_EXECUTABLE", "pi")
+        self.model = self._text(model, "SIFH_MODEL")
+        self.provider = self._text(provider, "SIFH_PROVIDER")
+        self.timeout = self._positive(timeout, "SIFH_TIMEOUT", 120)
+        self.cleanup_timeout = self._positive(cleanup_timeout, "SIFH_PI_CLEANUP_TIMEOUT", 5)
         limit = max_record_bytes if max_record_bytes is not None else os.getenv(
-            "SIF_PI_MAX_RECORD_BYTES", "1048576")
+            "SIFH_PI_MAX_RECORD_BYTES", "1048576")
         if isinstance(limit, bool) or not isinstance(limit, (str, int)):
-            raise ValueError("SIF_PI_MAX_RECORD_BYTES must be a positive integer")
+            raise ValueError("SIFH_PI_MAX_RECORD_BYTES must be a positive integer")
         try:
             self.max_record_bytes = int(limit)
         except ValueError:
-            raise ValueError("SIF_PI_MAX_RECORD_BYTES must be a positive integer") from None
+            raise ValueError("SIFH_PI_MAX_RECORD_BYTES must be a positive integer") from None
         if self.max_record_bytes <= 0:
-            raise ValueError("SIF_PI_MAX_RECORD_BYTES must be a positive integer")
+            raise ValueError("SIFH_PI_MAX_RECORD_BYTES must be a positive integer")
 
     @staticmethod
     def _text(value, name, default=None):

@@ -1,18 +1,21 @@
-# Self-improving factory (SIF): specification and phase progress
+# Self Improving Factory Harness (SIFH): specification and phase progress
 
 ## Objective
 
-Build an autonomous agent system that learns from execution outcomes, updates
-its strategies, and proposes improvements to its own source code. Human input,
+Build Self Improving Factory Harness (SIFH), an orchestration harness for agent
+and subagent management. The harness owns task claims, execution lifecycle,
+isolated execution, evidence, verification, code promotion, and recovery. Agents
+perform the work within those boundaries. Reflection uses execution outcomes to
+propose strategy updates and improvements to the harness's source code. Human input,
 issue prioritization, and observation should ultimately happen through a web UI.
-The system should process one model task at a time and preserve evidence for
+The harness should process one model task at a time and preserve evidence for
 every change. Terminal commands remain appropriate for development and setup.
 
 ## Architectural decisions
 
 - **Reuse automonisaur first:** inspect its existing functions and classes before
   adding an implementation. Import suitable functionality directly. When an
-  existing helper cannot preserve SIF's behavior, document the reason for a local
+  existing helper cannot preserve SIFH's behavior, document the reason for a local
   implementation. Prefer objects, separate configuration into `*Config` classes,
   and put connections to external systems in `*Client` classes.
 - **Environment credentials:** tokens, keys, secrets, and passwords must come
@@ -23,8 +26,8 @@ every change. Terminal commands remain appropriate for development and setup.
 - **Distributed sandboxes:** a parent host manages sibling Docker containers.
   Only the parent needs Docker daemon access; child runners do not receive its
   socket or write access to the parent checkout.
-- **Agent protocol:** the planned agent adapter uses `pi --mode rpc`. The internal
-  signal model is separate from that wire protocol. Live pi integration is pending.
+- **Agent protocol:** the host agent adapter uses `pi --mode rpc`. The internal
+  signal model is separate from that wire protocol. Container integration remains pending.
 - **Git gatekeeper:** agents submit structured file replacements and commit
   messages. The parent applies them through `GatekeeperVault` and GitPython.
   This role is required for autonomous source changes; it is not an optional
@@ -204,7 +207,9 @@ automatically started daemon; local tests do not establish live autonomy.
 - [x] Test malformed output, disconnects, and agent failure without inventing success.
 - [x] Process one issue with a live agent and retain its events and final result.
 - [ ] Ensure agent loops continuously until `/goal` state requirements are met before declaring a multi-step goal completed.
+- [x] Define host-owned goal completion, bounded iteration, and verification acceptance criteria in [the goal completion contract](docs/goal_completion.md).
 - [ ] Measure and record live event latency.
+- [x] Record monotonic host receipt elapsed times and inter-event intervals; covered by `tests/test_pi_events.py`. Live transport latency remains unverified.
 
 Container execution follows in Phase 9; verified code promotion requires Phase 10.
 

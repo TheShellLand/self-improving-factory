@@ -20,9 +20,9 @@ class TestConfiguration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             first = str(Path(directory) / "first.db")
             second = str(Path(directory) / "second.db")
-            with patch.dict(os.environ, {"SIF_DB_PATH": first}):
+            with patch.dict(os.environ, {"SIFH_DB_PATH": first}):
                 client = DatabaseClient()
-            with patch.dict(os.environ, {"SIF_DB_PATH": second}):
+            with patch.dict(os.environ, {"SIFH_DB_PATH": second}):
                 other = DatabaseClient()
                 with TestClient(create_app()) as api:
                     self.assertEqual(api.get("/api/issues").json(), [])
@@ -59,8 +59,8 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(remove.call_args.kwargs["timeout"], 3)
 
     def test_environment_defaults_and_explicit_overrides(self):
-        with patch.dict(os.environ, {"SIF_TASK_TIMEOUT": "23", "SIF_POLL_INTERVAL": "7",
-                                     "SIF_API_PORT": "8123", "SIF_IMAGE": "custom-image"}):
+        with patch.dict(os.environ, {"SIFH_TASK_TIMEOUT": "23", "SIFH_POLL_INTERVAL": "7",
+                                     "SIFH_API_PORT": "8123", "SIFH_IMAGE": "custom-image"}):
             self.assertEqual(DockerConfig().timeout, 23)
             self.assertEqual(DockerConfig(timeout=4).timeout, 4)
             self.assertEqual(HotLoaderConfig().poll_interval, 7)

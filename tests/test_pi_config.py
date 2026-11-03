@@ -17,10 +17,10 @@ class TestPiAgentConfig(unittest.TestCase):
         self.assertNotIn("--model", config.argv())
         self.assertNotIn("--provider", config.argv())
 
-    @patch.dict(os.environ, {"SIF_PI_EXECUTABLE": "/path with spaces/pi",
-                            "SIF_MODEL": "false", "SIF_PROVIDER": "true",
-                            "SIF_TIMEOUT": "12.5", "SIF_PI_CLEANUP_TIMEOUT": "2.5",
-                            "SIF_PI_MAX_RECORD_BYTES": "2048"}, clear=True)
+    @patch.dict(os.environ, {"SIFH_PI_EXECUTABLE": "/path with spaces/pi",
+                            "SIFH_MODEL": "false", "SIFH_PROVIDER": "true",
+                            "SIFH_TIMEOUT": "12.5", "SIFH_PI_CLEANUP_TIMEOUT": "2.5",
+                            "SIFH_PI_MAX_RECORD_BYTES": "2048"}, clear=True)
     def test_environment_and_overrides(self):
         config = PiAgentConfig()
         self.assertEqual(config.argv()[0], "/path with spaces/pi")
@@ -47,8 +47,8 @@ class TestPiAgentConfig(unittest.TestCase):
             for value in values:
                 with self.subTest(setting=setting, value=value), self.assertRaises(ValueError):
                     PiAgentConfig(**{setting: value})
-        for name in ("SIF_PI_EXECUTABLE", "SIF_MODEL", "SIF_PROVIDER", "SIF_TIMEOUT",
-                     "SIF_PI_CLEANUP_TIMEOUT", "SIF_PI_MAX_RECORD_BYTES"):
+        for name in ("SIFH_PI_EXECUTABLE", "SIFH_MODEL", "SIFH_PROVIDER", "SIFH_TIMEOUT",
+                     "SIFH_PI_CLEANUP_TIMEOUT", "SIFH_PI_MAX_RECORD_BYTES"):
             with self.subTest(name=name), patch.dict(os.environ, {name: ""}):
                 with self.assertRaises(ValueError):
                     PiAgentConfig()
