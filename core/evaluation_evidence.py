@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 
 from core.evaluation import StrategyEvaluator
+from core.evaluation_provenance import EvaluationExecutionRecord
 from core.strategy import StrategyProposal
 
 
@@ -27,6 +28,7 @@ class EvaluationEvidenceClient:
         manifest = self._json(root / "manifest.json")
         if manifest["status"] != "COMPLETED" or manifest["suite"] != "text-v1":
             raise ValueError("Incomplete or unsupported evaluation")
+        EvaluationExecutionRecord.model_validate(manifest["execution"])
         report = StrategyEvaluator().compare(**manifest["attempts"])
         if report["decision"] == "INCONCLUSIVE" or report != manifest["report"]:
             raise ValueError("Report mismatch")

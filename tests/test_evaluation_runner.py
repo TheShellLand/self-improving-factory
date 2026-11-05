@@ -40,6 +40,22 @@ class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(manifest["attempts"]["baseline"]), 30)
             verifier = EvaluationEvidenceClient()
             self.assertEqual(verifier.verify(root), report)
+            manifest_path = root / "manifest.json"
+            original_manifest = manifest_path.read_text()
+            for field, value in (("max_events", 0), ("timeout", -1),
+                                 ("runner_source_sha256", "invalid"),
+                                 ("declared", {}), ("argv", [])):
+                with self.subTest(field=field):
+                    altered = json.loads(original_manifest)
+                    altered["execution"][field] = value
+                    manifest_path.write_text(json.dumps(altered))
+                    self.assertEqual(verifier.verify(root)["decision"], "INCONCLUSIVE")
+            altered = json.loads(original_manifest)
+            del altered["execution"]
+            manifest_path.write_text(json.dumps(altered))
+            self.assertEqual(verifier.verify(root)["decision"], "INCONCLUSIVE")
+            manifest_path.write_text(original_manifest)
+            self.assertEqual(verifier.verify(root), report)
             artifact = root / "baseline-sum-1.json"
             original = artifact.read_bytes()
             artifact.write_text("{}")

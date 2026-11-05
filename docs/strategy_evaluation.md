@@ -122,6 +122,10 @@ attempt's unique session, issue linkage, terminal status, and summary against
 its database opened read-only. Missing, altered, or inconsistent artifacts return
 INCONCLUSIVE. Older manifests without artifact hashes also return INCONCLUSIVE.
 Keep completed runs immutable; editing their databases invalidates verification.
+Saved execution provenance must contain valid declarations, a runner source hash,
+nonempty arguments, finite positive timeouts, and positive record/event limits.
+Missing or malformed provenance returns INCONCLUSIVE, including older manifests
+without an event limit. Validation checks structure, not the truth of declarations.
 Hashes in the same manifest detect inconsistencies, not coordinated replacement
 of the manifest and evidence. This is not a signature or independent proof of
 model execution, provenance declarations, or protocol settlement.

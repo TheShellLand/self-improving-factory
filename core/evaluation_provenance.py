@@ -1,10 +1,32 @@
 """Explicit, non-secret metadata and captured evaluation execution settings."""
 import hashlib
 import inspect
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.pi_runner import PiRunner
+
+
+class EvaluationExecutionRecord(BaseModel):
+    """Validate saved declarations without claiming independent verification."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+    declared: "EvaluationProvenanceConfig"
+    runner_source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    argv: list[str] = Field(min_length=1)
+    timeout: float = Field(gt=0, allow_inf_nan=False)
+    cleanup_timeout: float = Field(gt=0, allow_inf_nan=False)
+    max_record_bytes: int = Field(gt=0)
+    max_events: int = Field(gt=0)
+    generation_settings: Literal["pi defaults; not controlled by this adapter"]
+    model_revision_verified: Literal[False]
+
+    @field_validator("argv")
+    @classmethod
+    def valid_arguments(cls, value):
+        if any(not argument.strip() or "\0" in argument for argument in value):
+            raise ValueError("Invalid execution argument")
+        return value
 
 
 class EvaluationProvenanceConfig(BaseModel):
