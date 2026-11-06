@@ -47,6 +47,25 @@ The image does not bundle pi. A host RPC client is available; see
 
 ## Verification
 
+### Agent image
+
+Build the separate text-only agent image with `bash scripts/build_agent.sh`.
+`SIFH_AGENT_IMAGE` overrides its default tag, `sifh_agent`. It contains Node 24
+and pi 1.4.0, runs as the unprivileged `node` user in `/workspace`, and defaults
+to RPC mode with tools, extensions, skills, templates, themes, and session
+persistence disabled. It contains no parent checkout or provider credentials.
+
+Check the installed version without network access:
+
+```sh
+docker run --rm --network none sifh_agent --version
+```
+
+The build and version check do not establish model execution or Docker RPC
+integration. The host must still implement credential forwarding, streaming,
+timeouts, and cancellation. The existing `run.sh` and `test.sh` helpers target
+the API/development image, not this agent image.
+
 Using the configured Python interpreter:
 
 ```sh

@@ -118,7 +118,7 @@ or the API starts against it.
 - [x] Capture output and exit codes, enforce execution timeouts, and retry cleanup.
 - [x] Expose synchronous execution to async callers through a worker thread.
 - [x] Verify the built API runtime separately from mocked Docker tests.
-- [ ] Package pi and its dependencies in an agent image (Phase 9).
+- [x] Package pi and its dependencies in an agent image (Phase 9).
 - [ ] Connect bidirectional RPC and bounded streaming output (Phase 9).
 - [ ] Confirm child termination on cancellation (Phase 9).
 
@@ -254,7 +254,7 @@ observations even when the final result is invalid.
 
 Depends on Phase 8.
 
-- [ ] Build an agent image containing pi and its runtime dependencies.
+- [x] Build an agent image containing pi and its runtime dependencies.
 - [ ] Connect bidirectional RPC through the Docker client.
 - [ ] Pass only required credentials from environment variables.
 - [ ] Keep the Docker socket and parent checkout write access out of child containers.
