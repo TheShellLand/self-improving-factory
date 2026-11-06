@@ -46,7 +46,7 @@ class EvaluationProvenanceConfig(BaseModel):
         config = client.config
         if not config.model or not config.provider:
             raise ValueError("Evaluation requires explicit model and provider settings")
-        return {
+        record = {
             "declared": self.model_dump(),
             "runner_source_sha256": hashlib.sha256(inspect.getsource(PiRunner).encode()).hexdigest(),
             "argv": config.argv(), "timeout": config.timeout,
@@ -55,3 +55,4 @@ class EvaluationProvenanceConfig(BaseModel):
             "generation_settings": "pi defaults; not controlled by this adapter",
             "model_revision_verified": False,
         }
+        return EvaluationExecutionRecord.model_validate(record).model_dump()

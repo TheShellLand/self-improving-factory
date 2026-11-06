@@ -126,6 +126,21 @@ class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
                 await EvaluationRunner(AsyncMock()).run(root, {}, {})
             self.assertFalse(root.exists())
 
+    async def test_invalid_execution_settings_create_no_artifacts(self):
+        for setting, value in (("max_events", 0), ("max_record_bytes", True),
+                               ("timeout", float("inf")), ("cleanup_timeout", -1),
+                               ("executable", ""), ("model", " ")):
+            with self.subTest(setting=setting):
+                client = AsyncMock()
+                runner = self.runner(client)
+                setattr(client.config, setting, value)
+                with TemporaryDirectory() as directory:
+                    root = Path(directory) / "run"
+                    with self.assertRaises(ValueError):
+                        await runner.run(root, {}, {})
+                    self.assertFalse(root.exists())
+                    client.run_structured.assert_not_awaited()
+
     async def test_final_provider_failure_cannot_hide_settings_drift(self):
         client = AsyncMock()
         runner = self.runner(client)

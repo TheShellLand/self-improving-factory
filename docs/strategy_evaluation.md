@@ -106,6 +106,9 @@ These values are caller declarations, not independently verified facts. The
 client must select an explicit provider and model. The collector captures its
 argv, timeout, cleanup timeout, record limit, event limit, and the SHA-256 of `PiRunner` source
 (including prompt construction). Changed captured settings abort the comparison.
+Captured execution settings are validated before creating the output directory
+or invoking the agent. Invalid mutated client settings therefore leave no run
+artifacts. The same validation applies to subsequent provenance checks.
 Settings are checked after provider failures as well as successful responses,
 including the final attempt. A failure accompanied by settings drift retains its
 attempt evidence but leaves the comparison INCOMPLETE and INCONCLUSIVE.
