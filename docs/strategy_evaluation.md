@@ -106,6 +106,9 @@ These values are caller declarations, not independently verified facts. The
 client must select an explicit provider and model. The collector captures its
 argv, timeout, cleanup timeout, record limit, event limit, and the SHA-256 of `PiRunner` source
 (including prompt construction). Changed captured settings abort the comparison.
+Settings are checked after provider failures as well as successful responses,
+including the final attempt. A failure accompanied by settings drift retains its
+attempt evidence but leaves the comparison INCOMPLETE and INCONCLUSIVE.
 The event limit is stored as `execution.max_events`; changing it during a run
 leaves the comparison INCOMPLETE and its decision INCONCLUSIVE. Earlier manifests
 without this field do not establish which event budget was used.

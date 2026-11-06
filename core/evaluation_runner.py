@@ -82,6 +82,8 @@ class EvaluationRunner:
                             self._write(root / f"{identifier}.json", evidence)
                         manifest["attempts"][name].append(record)
                         self._write(root / "manifest.json", manifest)
+                        if self.provenance.capture(self.client) != execution:
+                            raise ValueError("Evaluation execution settings changed")
             manifest["report"] = StrategyEvaluator().compare(**manifest["attempts"])
             manifest["artifacts"] = {
                 path.name: hashlib.sha256(path.read_bytes()).hexdigest()

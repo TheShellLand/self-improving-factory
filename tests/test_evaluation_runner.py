@@ -126,6 +126,32 @@ class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
                 await EvaluationRunner(AsyncMock()).run(root, {}, {})
             self.assertFalse(root.exists())
 
+    async def test_final_provider_failure_cannot_hide_settings_drift(self):
+        client = AsyncMock()
+        runner = self.runner(client)
+        calls = 0
+
+        async def failing(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 60:
+                client.config.max_events += 1
+            raise PiAgentError("provider failure")
+
+        client.run_structured.side_effect = failing
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "run"
+            with self.assertRaisesRegex(ValueError, "settings changed"):
+                await runner.run(root, {}, {})
+            manifest = json.loads((root / "manifest.json").read_text())
+            self.assertEqual(calls, 60)
+            self.assertEqual(manifest["status"], "INCOMPLETE")
+            self.assertEqual(manifest["report"], {"decision": "INCONCLUSIVE"})
+            self.assertEqual(len(manifest["attempts"]["candidate"]), 30)
+            final = json.loads((root / "candidate-no-tools-5.json").read_text())
+            self.assertEqual(final["failure"], "PiAgentError")
+            self.assertTrue((root / final["database"]).exists())
+
     async def test_changed_event_budget_aborts_comparison(self):
         client = AsyncMock()
         runner = self.runner(client)
