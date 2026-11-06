@@ -122,6 +122,19 @@ attempt's unique session, issue linkage, terminal status, and summary against
 its database opened read-only. Missing, altered, or inconsistent artifacts return
 INCONCLUSIVE. Older manifests without artifact hashes also return INCONCLUSIVE.
 Keep completed runs immutable; editing their databases invalidates verification.
+
+Verify a retained run from the repository root using the configured interpreter:
+
+```sh
+PYTHONPATH=. python -m scripts.check_evaluation /path/to/evaluation-run
+```
+
+The command prints one JSON report and reads artifacts without modifying them.
+Exit status 0 means the evidence passed consistency checks, including a verified
+REGRESSION or NO_CHANGE result. Exit status 1 means INCONCLUSIVE (for example,
+missing or altered artifacts); argument errors use status 2. Read the report's
+decision when assessing strategy quality. Exit status 0 does not authorize adoption.
+
 Saved execution provenance must contain valid declarations, a runner source hash,
 nonempty arguments, finite positive timeouts, and positive record/event limits.
 Missing or malformed provenance returns INCONCLUSIVE, including older manifests

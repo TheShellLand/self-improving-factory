@@ -311,6 +311,7 @@ Depends on Phases 8–10.
 - [x] Record declared execution provenance and reject changes to captured client settings during evaluation.
 - [x] Capture the pi event budget in evaluation provenance and reject budget drift during comparison.
 - [x] Reject saved evaluations with missing or malformed execution provenance.
+- [x] Provide a read-only evaluation verification command with JSON output and explicit exit statuses.
 - [x] Verify saved evaluation artifact hashes, report consistency, and database session/result linkage read-only.
 - [ ] Restore the previous configuration when a change fails evaluation.
 - [ ] Demonstrate a live, traceable analysis update and repeatable comparison
