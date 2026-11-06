@@ -255,6 +255,7 @@ observations even when the final result is invalid.
 Depends on Phase 8.
 
 - [x] Build an agent image containing pi and its runtime dependencies.
+- [x] Verify real container get_state RPC without inference using a bounded offline smoke helper.
 - [ ] Connect bidirectional RPC through the Docker client.
 - [ ] Pass only required credentials from environment variables.
 - [ ] Keep the Docker socket and parent checkout write access out of child containers.

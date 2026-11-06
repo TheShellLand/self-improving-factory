@@ -59,10 +59,17 @@ Check the installed version without network access:
 
 ```sh
 docker run --rm --network none sifh_agent --version
+bash scripts/check_agent_rpc.sh
 ```
 
-The build and version check do not establish model execution or Docker RPC
-integration. The host must still implement credential forwarding, streaming,
+The RPC helper sends `get_state`, checks the matching successful response, and
+terminates the child. It enforces a 15-second child deadline and a 1 MiB output
+budget, runs with networking disabled, and returns nonzero on protocol failure.
+The container is removed on exit. Docker image startup/pull time is outside the
+child deadline. `SIFH_AGENT_IMAGE` selects the image for both helpers.
+
+These checks do not establish model execution or host Docker RPC integration.
+The host must still implement credential forwarding, streaming,
 timeouts, and cancellation. The existing `run.sh` and `test.sh` helpers target
 the API/development image, not this agent image.
 
