@@ -29,6 +29,13 @@ class EvaluationEvidenceClient:
         if manifest["status"] != "COMPLETED" or manifest["suite"] != "text-v1":
             raise ValueError("Incomplete or unsupported evaluation")
         EvaluationExecutionRecord.model_validate(manifest["execution"])
+        for field in ("strategies", "strategy_hashes"):
+            if not isinstance(manifest[field], dict) or set(manifest[field]) != {"baseline", "candidate"}:
+                raise ValueError("Expected exactly baseline and candidate")
+        for strategy in manifest["strategies"].values():
+            if not isinstance(strategy, dict):
+                raise ValueError("Saved strategy must be a JSON object")
+            StrategyProposal(logic_description="Saved evaluation snapshot", prompt_weights=strategy)
         report = StrategyEvaluator().compare(**manifest["attempts"])
         if report["decision"] == "INCONCLUSIVE" or report != manifest["report"]:
             raise ValueError("Report mismatch")
