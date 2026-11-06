@@ -313,6 +313,7 @@ Depends on Phases 8–10.
 - [x] Reject execution-setting drift after provider failures, including the final evaluation attempt.
 - [x] Validate captured execution settings before creating evaluation artifacts or invoking the agent.
 - [x] Reject saved evaluations with missing or malformed execution provenance.
+- [x] Validate evaluation command arguments against the supported text-only pi RPC contract.
 - [x] Validate saved strategy snapshots and require exactly baseline/candidate strategy maps.
 - [x] Provide a read-only evaluation verification command with JSON output and explicit exit statuses.
 - [x] Verify saved evaluation artifact hashes, report consistency, and database session/result linkage read-only.

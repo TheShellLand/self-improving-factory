@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.pi_runner import PiRunner
+from core.config import PiAgentConfig
 
 
 class EvaluationExecutionRecord(BaseModel):
@@ -26,6 +27,13 @@ class EvaluationExecutionRecord(BaseModel):
     def valid_arguments(cls, value):
         if any(not argument.strip() or "\0" in argument for argument in value):
             raise ValueError("Invalid execution argument")
+        if len(value) < 5 or value[-4] != "--provider" or value[-2] != "--model":
+            raise ValueError("Explicit provider and model arguments are required")
+        expected = PiAgentConfig(executable=value[0], provider=value[-3], model=value[-1],
+                                 timeout=120, cleanup_timeout=5, max_record_bytes=1048576,
+                                 max_events=10000).argv()
+        if value != expected:
+            raise ValueError("Unsupported evaluation execution arguments")
         return value
 
 
