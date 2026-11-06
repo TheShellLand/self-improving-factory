@@ -315,6 +315,7 @@ Depends on Phases 8–10.
 - [x] Reject saved evaluations with missing or malformed execution provenance.
 - [x] Validate evaluation command arguments against the supported text-only pi RPC contract.
 - [x] Validate saved strategy snapshots and require exactly baseline/candidate strategy maps.
+- [x] Reject unknown completed-manifest fields and report value-type substitutions.
 - [x] Provide a read-only evaluation verification command with JSON output and explicit exit statuses.
 - [x] Verify saved evaluation artifact hashes, report consistency, and database session/result linkage read-only.
 - [ ] Restore the previous configuration when a change fails evaluation.

@@ -128,6 +128,9 @@ attempt's unique session, issue linkage, terminal status, and summary against
 its database opened read-only. Missing, altered, or inconsistent artifacts return
 INCONCLUSIVE. Older manifests without artifact hashes also return INCONCLUSIVE.
 Keep completed runs immutable; editing their databases invalidates verification.
+Completed manifests must contain exactly the supported top-level fields. Saved
+reports must match the recomputed JSON report, including numeric representation
+and value types; booleans cannot substitute for numeric scores or counts.
 Saved strategy and strategy-hash maps must contain exactly baseline and candidate.
 Each strategy snapshot must be a finite JSON object; strings containing JSON,
 arrays, scalars, and null are rejected as INCONCLUSIVE.

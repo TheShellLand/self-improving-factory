@@ -42,6 +42,16 @@ class TestEvaluationRunner(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(verifier.verify(root), report)
             manifest_path = root / "manifest.json"
             original_manifest = manifest_path.read_text()
+            for field in ("baseline_score", "candidate_score"):
+                altered = json.loads(original_manifest)
+                altered["report"][field] = True
+                manifest_path.write_text(json.dumps(altered))
+                self.assertEqual(verifier.verify(root)["decision"], "INCONCLUSIVE")
+            for field in ("unexpected", "schema_version"):
+                altered = json.loads(original_manifest)
+                altered[field] = 1
+                manifest_path.write_text(json.dumps(altered))
+                self.assertEqual(verifier.verify(root)["decision"], "INCONCLUSIVE")
             for field in ("strategies", "strategy_hashes"):
                 for invalid in (None, [], {}, {"baseline": {}, "candidate": {}, "extra": {}}):
                     with self.subTest(field=field, invalid=invalid):

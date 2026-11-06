@@ -26,6 +26,10 @@ class EvaluationEvidenceClient:
 
     def _verify(self, root):
         manifest = self._json(root / "manifest.json")
+        expected_fields = {"suite", "status", "strategies", "execution", "strategy_hashes",
+                           "attempts", "report", "artifacts"}
+        if not isinstance(manifest, dict) or set(manifest) != expected_fields:
+            raise ValueError("Invalid completed manifest fields")
         if manifest["status"] != "COMPLETED" or manifest["suite"] != "text-v1":
             raise ValueError("Incomplete or unsupported evaluation")
         EvaluationExecutionRecord.model_validate(manifest["execution"])
@@ -37,7 +41,9 @@ class EvaluationEvidenceClient:
                 raise ValueError("Saved strategy must be a JSON object")
             StrategyProposal(logic_description="Saved evaluation snapshot", prompt_weights=strategy)
         report = StrategyEvaluator().compare(**manifest["attempts"])
-        if report["decision"] == "INCONCLUSIVE" or report != manifest["report"]:
+        if (report["decision"] == "INCONCLUSIVE" or
+                json.dumps(report, sort_keys=True, allow_nan=False) !=
+                json.dumps(manifest["report"], sort_keys=True, allow_nan=False)):
             raise ValueError("Report mismatch")
         expected_files = set()
         sessions = set()
